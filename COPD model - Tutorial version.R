@@ -1,56 +1,26 @@
-###############################################################
-########## BI/iMTA COPD simulation model ######################
-###############################################################
+########################################################################################
+########## Patient-level discrete event simulation model for COPD ######################
+########################################################################################
 
+# Original work Copyright (C) 2019 Isaac Corro Ramos
 
-###################################
-######## LOG version ##############
-###################################
+# This is the R code of the tutorial version of the health economic simulation model for COPD published as: 
+# Broadening the Perspective of Cost-Effectiveness Modeling in Chronic Obstructive Pulmonary Disease: 
+# A New Patient-Level Simulation Model Suitable to Evaluate Stratified Medicine
+# Hoogendoorn, Martine et al. Value in Health, Volume 22, Issue 3, 313 - 321
+# https://doi.org/10.1016/j.jval.2018.10.008
 
-### Modificaitions with respect to previous versions
-
-### November 2017 ###
-
-# 1. Allow running the model as a function of several inputs (that will be listed below).
-# 2. Implement PSA.
-# 3. Remove Rayleigh and Log-logistic from mortality distirbutions.
-# 4. Implement treatment effect as an "improvement" controlled by random seed
-# 5. Correct mortality factor based on remaining life expectancy
-# 6. Add probability of severe eacerbation as treatment effect --> DONT forget to add it to the PSA
-# 7. Constraints on fevppa <<-- ask Martine about logical constraints - for the time being add 0
-
-### December 2017 ###
-
-# 1. Reduce the number of if statements
-# 2. Remove parts regarding "no_event_time"
-# 3. Include treatment effect scenarios as input parameters
-
-### July 2018 ###
-
-# 1. Add new metric for symptoms for the ViH paper. Note this metric is already implmented in the interfaced version 
-#    of the model.
-
-
-#######################################
-########## Code starts below ##########
-#######################################
-
-
-### Remove previous objects from R session
-rm(list = ls())  
-
-
-init_time <- proc.time()
-
-### Install and load packages - Update this: ask Frederick!
+# Before the simulation code starts, make sure that all the packages below are installed in your computer.
+# Then load the packages.
 library(lattice)
 library(MASS)
 library(survival)
 library(plyr)
 library(triangle)
 
-
-### Set working directory: can this be automathized?
+# When you are reading external files and exporting results you may set a working directory.
+# This can be for example the folder where you saved some previous results.
+# Do not forget to change this path into your personal working directory.
 wd <- setwd("C:/Users/Isaac/Dropbox/COPD")
 
 ##########################
@@ -58,7 +28,215 @@ wd <- setwd("C:/Users/Isaac/Dropbox/COPD")
 ##########################
  
 ### Read auxiliar function from a different file
-source("COPD model simulation - auxiliar functions.R")
+# source("COPD model simulation - auxiliar functions.R")
+
+# These functions are the following.
+
+### FEVPPA 
+
+#Equation 1B males (ECSC 1993 used by BI): if female=0 FEV1pred =  0.0430*htstd - 0.0290*age_time - 2.490.
+#Equation 1B females (ECSC 1993 used by BI):  if female=1 FEV1pred =  0.0395*htstd - 0.0250*age_time - 2.600.
+#Equation 1C: FEVPPA = FEVA / FEV1pred *100
+
+
+fevppa_calc <- function(female_input,height_input,age_input,feva_input){
+  
+  if(female_input==0){FEV1_pred <- 0.0430*height_input-0.0290*age_input-2.490}
+  if(female_input==1){FEV1_pred <- 0.0395*height_input-0.0250*age_input-2.600}
+  else{FEV1_pred <- female_input*(0.0395*height_input-0.0250*age_input-2.600)+(1-female_input)*(0.0430*height_input-0.0290*age_input-2.49)}
+  
+  fevppa <- max(0,100*(feva_input/FEV1_pred)) # Added max(0,x) to avoid negative numbers
+  return(list(fevppa=fevppa,FEV1_pred=FEV1_pred))
+  
+}
+
+
+####################
+### Predict FEV1 ###
+####################
+
+predicted_fev1 <- function(run_obs_input,
+                           regression_coefficents_fev1_input, 
+                           patient_characteristics_fev1_input,
+                           fev1_treatment_effect_input){
+  
+  patient_characteristics_fev1 <- as.numeric(patient_characteristics_fev1_input)
+  
+  if(run_obs_input==1){
+    x <- c(1,patient_characteristics_fev1[1]*fev1_treatment_effect_input,  #this is anlyear in patient characteristics
+           patient_characteristics_fev1[16], #this is FEVA_BL in patient characteristics
+           patient_characteristics_fev1[17], #this is modexac in patient characteristics
+           patient_characteristics_fev1[18], #this is sevexac in patient characteristics
+           patient_characteristics_fev1[1]*fev1_treatment_effect_input*patient_characteristics_fev1[2:16]) 
+  }else{
+    x <- c(1,patient_characteristics_fev1[1]*fev1_treatment_effect_input, #this is anlyear
+           patient_characteristics_fev1[17], #this is FEVA_BL
+           patient_characteristics_fev1[18], #this is modexac in patient characteristics
+           patient_characteristics_fev1[19], #this is sevexac in patient characteristics
+           patient_characteristics_fev1[1]*fev1_treatment_effect_input*patient_characteristics_fev1[2:17])
+  }
+  
+  fev_1 <- sum(regression_coefficents_fev1_input*x)
+  return(list(fev_1=fev_1))
+  
+}
+
+
+###################
+### Predict CWE ###
+###################
+
+predicted_cwe_tot <- function(regression_coefficents_cwe_tot_input, 
+                              patient_characteristics_cwe_tot_input){
+  patient_characteristics_cwe_tot_input <- as.numeric(patient_characteristics_cwe_tot_input)
+  totexa <- max(tail(patient_characteristics_cwe_tot_input,2))
+  cwe_tot <- sum(regression_coefficents_cwe_tot_input*c(1,head(patient_characteristics_cwe_tot_input,-2),totexa))
+  return(list(cwe_tot=cwe_tot))
+  
+}
+
+
+##############################
+### Predict breathlessness ###
+##############################
+
+predicted_breathless <- function(regression_coefficents_breathless_input, 
+                                 patient_characteristics_breathless_input){
+  
+  patient_characteristics_breathless_input <- as.numeric(patient_characteristics_breathless_input)
+  log.oods.breathless <- sum(regression_coefficents_breathless_input*c(1,patient_characteristics_breathless_input)) # this is log(ODDS)
+  p.breathless <- exp(log.oods.breathless)/(1+exp(log.oods.breathless))
+  return(list(log.oods.breathless=log.oods.breathless,p.breathless=p.breathless))
+  
+}
+
+
+###########################
+### Predict coughsputum ###
+###########################
+
+predicted_coughsputum <- function(regression_coefficents_coughsputum_input, 
+                                  patient_characteristics_coughsputum_input){
+  
+  patient_characteristics_coughsputum_input <- as.numeric(patient_characteristics_coughsputum_input)
+  log.oods.coughsputum <- sum(regression_coefficents_coughsputum_input*c(1,patient_characteristics_coughsputum_input)) # this is log(ODDS)
+  p.coughsputum <- exp(log.oods.coughsputum)/(1+exp(log.oods.coughsputum))
+  return(list(log.oods.coughsputum=log.oods.coughsputum,p.coughsputum=p.coughsputum))
+  
+}
+
+
+###################################
+### Predict SGRQ Activity score ###
+###################################
+
+predicted_SGACT <- function(regression_coefficents_SGACT_input, 
+                            patient_characteristics_SGACT_input){
+  patient_characteristics_SGACT_input <- as.numeric(patient_characteristics_SGACT_input)
+  SGACT <- sum(regression_coefficents_SGACT_input*c(1,patient_characteristics_SGACT_input))
+  return(list(SGACT=SGACT))
+  
+}
+
+
+################################
+### Predict SGRQ total score ###
+################################
+
+predicted_SGTOT <- function(regression_coefficents_SGTOT_input, 
+                            patient_characteristics_SGTOT_input){
+  patient_characteristics_SGTOT_input <- as.numeric(patient_characteristics_SGTOT_input)
+  SGTOT <- sum(regression_coefficents_SGTOT_input*c(1,patient_characteristics_SGTOT_input))
+  return(list(SGTOT=SGTOT))
+  
+}
+
+
+#################################
+### Predict mortality_weibull ###
+#################################
+
+predicted_mortality_weibull <- function(regression_coefficents_mortality_weibull_input, 
+                                        patient_characteristics_mortality_weibull_input){
+  
+  patient_characteristics_mortality_weibull_input <- as.numeric(patient_characteristics_mortality_weibull_input)
+  ### the last element in the coefficients inputs is Log(scale) in survreg.
+  ### Thus, exp(tail(mortality_weibull_regression_coef$Value,n=1)) is scale in survreg.
+  ### BUT scale in survreg is 1/shape in rweibull.
+  shape_mortality_weibull <- 1/exp(tail(regression_coefficents_mortality_weibull_input,n=1))
+  scale_mortality_weibull <- exp(sum(head(regression_coefficents_mortality_weibull_input,n=-1)*c(1,patient_characteristics_mortality_weibull_input)) )
+  return(list(shape_mortality_weibull=shape_mortality_weibull,
+              scale_mortality_weibull=scale_mortality_weibull))
+  
+}
+
+
+####################################
+### Predict exacerbation_weibull ###
+####################################
+
+predicted_exacerbation_weibull <- function(regression_coefficents_exacerbation_weibull_input, 
+                                           patient_characteristics_exacerbation_weibull_input){
+  
+  patient_characteristics_exacerbation_weibull_input <- as.numeric(patient_characteristics_exacerbation_weibull_input)
+  ### the last element in the coefficients inputs is Log(scale) in survreg.
+  ### Thus, exp(tail(exacerbation_weibull_regression_coef$Value,n=1)) is scale in survreg.
+  ### BUT scale in survreg is 1/shape in rweibull.
+  shape_exacerbation_weibull <- 1/exp(tail(regression_coefficents_exacerbation_weibull_input,n=1))
+  scale_exacerbation_weibull <- exp(sum(head(regression_coefficents_exacerbation_weibull_input,n=-1)*c(1,patient_characteristics_exacerbation_weibull_input)) )
+  return(list(shape_exacerbation_weibull=shape_exacerbation_weibull,
+              scale_exacerbation_weibull=scale_exacerbation_weibull))
+  
+}
+
+
+#####################################
+### Predict exacerbation_severity ###
+#####################################
+
+predicted_exacerbation_severity <- function(regression_coefficents_exacerbation_severity_input, 
+                                            patient_characteristics_exacerbation_severity_input){
+  
+  patient_characteristics_exacerbation_severity_input <- as.numeric(patient_characteristics_exacerbation_severity_input)
+  log.oods.exacerbation_severity <- sum(regression_coefficents_exacerbation_severity_input*c(1,patient_characteristics_exacerbation_severity_input)) # this is log(ODDS)
+  p.exacerbation_severity <- exp(log.oods.exacerbation_severity)/(1+exp(log.oods.exacerbation_severity))
+  return(list(log.oods.exacerbation_severity=log.oods.exacerbation_severity,p.exacerbation_severity=p.exacerbation_severity))
+  
+}
+
+#################################
+### Predict pneumonia_weibull ###
+#################################
+
+predicted_pneumonia_weibull <- function(regression_coefficents_pneumonia_weibull_input, 
+                                        patient_characteristics_pneumonia_weibull_input){
+  
+  patient_characteristics_pneumonia_weibull_input <- as.numeric(patient_characteristics_pneumonia_weibull_input)
+  ### the last element in the coefficients inputs is Log(scale) in survreg.
+  ### Thus, exp(tail(pneumonia_weibull_regression_coef$Value,n=1)) is scale in survreg.
+  ### BUT scale in survreg is 1/shape in rweibull.
+  shape_pneumonia_weibull <- 1/exp(tail(regression_coefficents_pneumonia_weibull_input,n=1))
+  scale_pneumonia_weibull <- exp(sum(head(regression_coefficents_pneumonia_weibull_input,n=-1)*c(1,patient_characteristics_pneumonia_weibull_input)) )
+  return(list(shape_pneumonia_weibull=shape_pneumonia_weibull,
+              scale_pneumonia_weibull=scale_pneumonia_weibull))
+  
+}
+
+
+#########################################
+### Predict pneumonia hospitalisation ###
+#########################################
+
+predicted_pneumonia_hosp <- function(regression_coefficents_pneumonia_hosp_input, 
+                                     patient_characteristics_pneumonia_hosp_input){
+  
+  patient_characteristics_pneumonia_hosp_input <- as.numeric(patient_characteristics_pneumonia_hosp_input)
+  log.oods.pneumonia.hosp <- sum(regression_coefficents_pneumonia_hosp_input*c(1,patient_characteristics_pneumonia_hosp_input)) # this is log(ODDS)
+  p.pneumonia.hosp        <- exp(log.oods.pneumonia.hosp)/(1+exp(log.oods.pneumonia.hosp))
+  
+  return(list(log.oods.pneumonia.hosp=log.oods.pneumonia.hosp,p.pneumonia.hosp=p.pneumonia.hosp))
+  
+}
 
 
 ########################
@@ -1661,82 +1839,3 @@ rownames(PSA_summary_table) <- c(1:psa_size,"Mean","2.5%", "97.5%")
 PSA_summary_table
 
 write.csv(PSA_summary_table, paste("PE paper/",Sys.Date(),"_",psa_size,"x",patient_size,"_base_case_no_seed_PE_paper",'.csv', sep=''))
-
-# 
-# # # ############
-# # # ## CEAC   ##
-# # # ############
-# # # 
-# # # # This is one way of computing the CEAC: with the INMB (only valid for 2 treatments)
-# # # 
-# # # tio_psa_data  <- read.csv(paste0(wd,c("/Model - simulation results/PSA/21nov_20x10_dynagito_tio.csv")),sep=",")
-# # # eff_psa_data  <- read.csv(paste0(wd,c("/Model - simulation results/PSA/21nov_20x10_dynagito_tio_olo.csv")),sep=",")
-# # # 
-# # # psa_size <- 20
-# # # diffutil <- eff_psa_data[1:psa_size,14] - tio_psa_data[1:psa_size,14] #mind the bottom rows!!!!
-# # # diffcost <- eff_psa_data[1:psa_size,18] - tio_psa_data[1:psa_size,18]
-# # # 
-# # # 
-# # # k <- 0
-# # # maxthreshold <- 80000
-# # # 
-# # # thresholds  <- c()
-# # # CEAC_points <- c()
-# # # 
-# # # while (k < maxthreshold){
-# # # 
-# # #   inmb <- k*diffutil - diffcost
-# # # 
-# # #   thresholds <-  append(thresholds,k)
-# # #   CEAC_points <- append(CEAC_points, length(inmb[inmb>0])/psa_size)
-# # # 
-# # #   k <- k+5
-# # # 
-# # # }
-# # # 
-# # # 
-# # # # then we can plot the CEAC as follows
-# # # #jpeg('C:/Users/Isaac/Dropbox/COPD/Model - simulation results/PSA/CEAC_100x100_base_case_vs_tte_scenario.jpg',width = 480, height = 480, units = "px", pointsize = 12,quality = 1000)
-# # # windows()
-# # # plot(thresholds, CEAC_points, pch=1, xlab=expression(lambda), ylab="Probability that a treatment is optimal",
-# # #      col="black",ylim=c(0,1.15),type="l", las=1, lty=1,cex.main=1.4,cex.lab=1.4)
-# # # title(main="Acceptability curves",cex.main=1.4)
-# # # points(thresholds, 1-CEAC_points, pch=20, col="black",ylim=c(0,1.15),type="l",lty=2)
-# # # #dev.off()
-# # # 
-# # # ##############
-# # # # CE plane   #
-# # # ##############
-# # # 
-# # # ### For the moment it is not incremental!!!
-# # # 
-# # # limy <- max(abs(min(diffcost)), abs(max(diffcost)))
-# # # limx <- max(abs(min(diffutil)), abs(max(diffutil)))
-# # # 
-# # # 
-# # # jpeg('Model - simulation results/PSA/CE_plane_100x100_base_case_vs_tte_scenario.jpg',width = 480, height = 480, units = "px", pointsize = 12,quality = 1000)
-# # # # and now we plot
-# # # windows()
-# # # plot(diffutil,diffcost,
-# # #      type="p",pch=18,xlab=expression(paste(Delta,Q)),ylab=expression(paste(Delta,"C(£)")),
-# # #      #type="p",pch=18,xlab="QALYs",ylab="Costs (£)",
-# # #      bty="l",las=1, xlim=c(-limx,limx),ylim=c(-limy,limy))
-# # # 
-# # # title(main="CE plane")
-# # # abline(0,0)
-# # # abline(0,0,v=0)
-# # # points(mean(diffutil),mean(diffcost),col="green",pch=15)
-# # # 
-# # # dev.off()
-# # # 
-# # # 
-# # # #points(mean(diffutil),mean(diffcost),col="green",pch=15)
-# # # #text(0.1,-200, c("ICER=9870"),cex=1.4)
-# # # #legend
-# # # 
-# # # 
-# # # 
-# # # # round(c(mean(COPD_model_PSA_output$psa_history[,1]),quantile(COPD_model_PSA_output$psa_history[,1],c(0.025,0.975))),4)
-# # # # round(c(mean(COPD_model_PSA_output$psa_history[,2]),quantile(COPD_model_PSA_output$psa_history[,2],c(0.025,0.975))),4)
-# # # #
-# # # #
