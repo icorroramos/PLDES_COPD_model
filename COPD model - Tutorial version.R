@@ -23,17 +23,107 @@ library(triangle)
 # Do not forget to change this path into your personal working directory.
 wd <- setwd("C:/Users/Isaac/Dropbox/COPD")
 
-# This model makes use of previously estimated regression equations to predict COPD-related intermediate outcomes.
+# This model makes use of previously estimated regression equations to predict time to events and COPD-related intermediate outcomes.
 # These regression equations were estimated somewhere else and the results (e.g. the regression coefficients) can be 
 # found in the paper by Hoogendoorn et al.
 # The simulation model reads these coefficients from previously saved .csv files. With these regression coefficients
-# and patient characteristics (that will be read from another file), the functions below can be used to predict COPD-related 
-# intermediate outcomes. 
+# and patient characteristics (that will be read from another file), the functions below can be used to predict time to events 
+# and COPD-related intermediate outcomes. 
 # You can choose to read these functions from a different R file. In that case, you would need a statement like this:
 # source("COPD model simulation - auxiliar functions.R"). 
 # However, in this case, we decided to show all functions in the same file.
 
 # Notation: as a general rule, names for function input parameters end with "_input".
+
+# Three events can occur in the simulation: death, exacerbation and pneumonia.
+
+### TIME TO DEATH (AT BASELINE)
+# Time to death (at baseline) is a function of the previously estimated regression coefficients and patient characteristics.
+# It is assumed to follow a Weibull distribution.
+
+predicted_mortality_weibull <- function(regression_coefficents_mortality_weibull_input, 
+                                        patient_characteristics_mortality_weibull_input){
+  
+  patient_characteristics_mortality_weibull_input <- as.numeric(patient_characteristics_mortality_weibull_input)
+  ### the last element in the coefficients inputs is Log(scale) in survreg.
+  ### Thus, exp(tail(mortality_weibull_regression_coef$Value,n=1)) is scale in survreg.
+  ### BUT scale in survreg is 1/shape in rweibull.
+  shape_mortality_weibull <- 1/exp(tail(regression_coefficents_mortality_weibull_input,n=1))
+  scale_mortality_weibull <- exp(sum(head(regression_coefficents_mortality_weibull_input,n=-1)*c(1,patient_characteristics_mortality_weibull_input)) )
+  return(list(shape_mortality_weibull=shape_mortality_weibull,
+              scale_mortality_weibull=scale_mortality_weibull))
+}
+
+
+### TIME TO EXACERBATION
+# Time to exacerbation is a function of the previously estimated regression coefficients and patient characteristics.
+# It is assumed to follow a Weibull distribution.
+
+predicted_exacerbation_weibull <- function(regression_coefficents_exacerbation_weibull_input, 
+                                           patient_characteristics_exacerbation_weibull_input){
+  
+  patient_characteristics_exacerbation_weibull_input <- as.numeric(patient_characteristics_exacerbation_weibull_input)
+  ### the last element in the coefficients inputs is Log(scale) in survreg.
+  ### Thus, exp(tail(exacerbation_weibull_regression_coef$Value,n=1)) is scale in survreg.
+  ### BUT scale in survreg is 1/shape in rweibull.
+  shape_exacerbation_weibull <- 1/exp(tail(regression_coefficents_exacerbation_weibull_input,n=1))
+  scale_exacerbation_weibull <- exp(sum(head(regression_coefficents_exacerbation_weibull_input,n=-1)*c(1,patient_characteristics_exacerbation_weibull_input)) )
+  return(list(shape_exacerbation_weibull=shape_exacerbation_weibull,
+              scale_exacerbation_weibull=scale_exacerbation_weibull))
+}
+
+
+### EXACERBATION SEVERITY
+# The probability of experiencing a severe exacerbation is a function of the previously estimated regression coefficients 
+# and patient characteristics. The function return also the log odds.  
+
+predicted_exacerbation_severity <- function(regression_coefficents_exacerbation_severity_input, 
+                                            patient_characteristics_exacerbation_severity_input){
+  
+  patient_characteristics_exacerbation_severity_input <- as.numeric(patient_characteristics_exacerbation_severity_input)
+  log.oods.exacerbation_severity <- sum(regression_coefficents_exacerbation_severity_input*c(1,patient_characteristics_exacerbation_severity_input)) # this is log(ODDS)
+  p.exacerbation_severity <- exp(log.oods.exacerbation_severity)/(1+exp(log.oods.exacerbation_severity))
+  return(list(log.oods.exacerbation_severity=log.oods.exacerbation_severity,p.exacerbation_severity=p.exacerbation_severity))
+}
+
+
+### TIME TO PNEUMONIA
+# Time to pneumonia is a function of the previously estimated regression coefficients and patient characteristics.
+# It is assumed to follow a Weibull distribution.
+
+predicted_pneumonia_weibull <- function(regression_coefficents_pneumonia_weibull_input, 
+                                        patient_characteristics_pneumonia_weibull_input){
+  
+  patient_characteristics_pneumonia_weibull_input <- as.numeric(patient_characteristics_pneumonia_weibull_input)
+  ### the last element in the coefficients inputs is Log(scale) in survreg.
+  ### Thus, exp(tail(pneumonia_weibull_regression_coef$Value,n=1)) is scale in survreg.
+  ### BUT scale in survreg is 1/shape in rweibull.
+  shape_pneumonia_weibull <- 1/exp(tail(regression_coefficents_pneumonia_weibull_input,n=1))
+  scale_pneumonia_weibull <- exp(sum(head(regression_coefficents_pneumonia_weibull_input,n=-1)*c(1,patient_characteristics_pneumonia_weibull_input)) )
+  return(list(shape_pneumonia_weibull=shape_pneumonia_weibull,
+              scale_pneumonia_weibull=scale_pneumonia_weibull))
+  
+}
+
+
+### PNEUMONIA SEVERITY
+# The probability of experiencing a pneumonia leading to hospitalisation is a function of the previously estimated regression 
+# coefficients and patient characteristics. The function return also the log odds.  
+
+predicted_pneumonia_hosp <- function(regression_coefficents_pneumonia_hosp_input, 
+                                     patient_characteristics_pneumonia_hosp_input){
+  
+  patient_characteristics_pneumonia_hosp_input <- as.numeric(patient_characteristics_pneumonia_hosp_input)
+  log.oods.pneumonia.hosp <- sum(regression_coefficents_pneumonia_hosp_input*c(1,patient_characteristics_pneumonia_hosp_input)) # this is log(ODDS)
+  p.pneumonia.hosp        <- exp(log.oods.pneumonia.hosp)/(1+exp(log.oods.pneumonia.hosp))
+  
+  return(list(log.oods.pneumonia.hosp=log.oods.pneumonia.hosp,p.pneumonia.hosp=p.pneumonia.hosp))
+  
+}
+
+
+# Six intermediate outcomes are included in the simulation: lung function, exercise capacity, symptoms (shortness of breath 
+# and cough/sputum), physical activity and disease-specific quality of life.
 
 ### LUNG FUNCTION
 # Lung function defined as FEV1 is predicted as a function of the previously estimated regression coefficients, 
@@ -141,92 +231,8 @@ predicted_SGTOT <- function(regression_coefficents_SGTOT_input,
 }
 
 
-### TIME TO DEATH (AT BASELINE)
-# Time to death (at baseline) is a function of the previously estimated regression coefficients and patient characteristics.
-# It is assumed to follow a Weibull distribution.
+### CONTINUE HERE
 
-predicted_mortality_weibull <- function(regression_coefficents_mortality_weibull_input, 
-                                        patient_characteristics_mortality_weibull_input){
-  
-  patient_characteristics_mortality_weibull_input <- as.numeric(patient_characteristics_mortality_weibull_input)
-  ### the last element in the coefficients inputs is Log(scale) in survreg.
-  ### Thus, exp(tail(mortality_weibull_regression_coef$Value,n=1)) is scale in survreg.
-  ### BUT scale in survreg is 1/shape in rweibull.
-  shape_mortality_weibull <- 1/exp(tail(regression_coefficents_mortality_weibull_input,n=1))
-  scale_mortality_weibull <- exp(sum(head(regression_coefficents_mortality_weibull_input,n=-1)*c(1,patient_characteristics_mortality_weibull_input)) )
-  return(list(shape_mortality_weibull=shape_mortality_weibull,
-              scale_mortality_weibull=scale_mortality_weibull))
-}
-
-
-### TIME TO EXACERBATION
-# Time to exacerbation is a function of the previously estimated regression coefficients and patient characteristics.
-# It is assumed to follow a Weibull distribution.
-
-predicted_exacerbation_weibull <- function(regression_coefficents_exacerbation_weibull_input, 
-                                           patient_characteristics_exacerbation_weibull_input){
-  
-  patient_characteristics_exacerbation_weibull_input <- as.numeric(patient_characteristics_exacerbation_weibull_input)
-  ### the last element in the coefficients inputs is Log(scale) in survreg.
-  ### Thus, exp(tail(exacerbation_weibull_regression_coef$Value,n=1)) is scale in survreg.
-  ### BUT scale in survreg is 1/shape in rweibull.
-  shape_exacerbation_weibull <- 1/exp(tail(regression_coefficents_exacerbation_weibull_input,n=1))
-  scale_exacerbation_weibull <- exp(sum(head(regression_coefficents_exacerbation_weibull_input,n=-1)*c(1,patient_characteristics_exacerbation_weibull_input)) )
-  return(list(shape_exacerbation_weibull=shape_exacerbation_weibull,
-              scale_exacerbation_weibull=scale_exacerbation_weibull))
-}
-
-
-### EXACERBATION SEVERITY
-# The probability of experiencing a severe exacerbation is a function of the previously estimated regression coefficients 
-# and patient characteristics. The function return also the log odds.  
-
-predicted_exacerbation_severity <- function(regression_coefficents_exacerbation_severity_input, 
-                                            patient_characteristics_exacerbation_severity_input){
-  
-  patient_characteristics_exacerbation_severity_input <- as.numeric(patient_characteristics_exacerbation_severity_input)
-  log.oods.exacerbation_severity <- sum(regression_coefficents_exacerbation_severity_input*c(1,patient_characteristics_exacerbation_severity_input)) # this is log(ODDS)
-  p.exacerbation_severity <- exp(log.oods.exacerbation_severity)/(1+exp(log.oods.exacerbation_severity))
-  return(list(log.oods.exacerbation_severity=log.oods.exacerbation_severity,p.exacerbation_severity=p.exacerbation_severity))
-}
-
-
-### TIME TO PNEUMONIA
-# Time to pneumonia is a function of the previously estimated regression coefficients and patient characteristics.
-# It is assumed to follow a Weibull distribution.
-
-predicted_pneumonia_weibull <- function(regression_coefficents_pneumonia_weibull_input, 
-                                        patient_characteristics_pneumonia_weibull_input){
-  
-  patient_characteristics_pneumonia_weibull_input <- as.numeric(patient_characteristics_pneumonia_weibull_input)
-  ### the last element in the coefficients inputs is Log(scale) in survreg.
-  ### Thus, exp(tail(pneumonia_weibull_regression_coef$Value,n=1)) is scale in survreg.
-  ### BUT scale in survreg is 1/shape in rweibull.
-  shape_pneumonia_weibull <- 1/exp(tail(regression_coefficents_pneumonia_weibull_input,n=1))
-  scale_pneumonia_weibull <- exp(sum(head(regression_coefficents_pneumonia_weibull_input,n=-1)*c(1,patient_characteristics_pneumonia_weibull_input)) )
-  return(list(shape_pneumonia_weibull=shape_pneumonia_weibull,
-              scale_pneumonia_weibull=scale_pneumonia_weibull))
-  
-}
-
-
-#########################################
-### Predict pneumonia hospitalisation ###
-#########################################
-
-predicted_pneumonia_hosp <- function(regression_coefficents_pneumonia_hosp_input, 
-                                     patient_characteristics_pneumonia_hosp_input){
-  
-  patient_characteristics_pneumonia_hosp_input <- as.numeric(patient_characteristics_pneumonia_hosp_input)
-  log.oods.pneumonia.hosp <- sum(regression_coefficents_pneumonia_hosp_input*c(1,patient_characteristics_pneumonia_hosp_input)) # this is log(ODDS)
-  p.pneumonia.hosp        <- exp(log.oods.pneumonia.hosp)/(1+exp(log.oods.pneumonia.hosp))
-  
-  return(list(log.oods.pneumonia.hosp=log.oods.pneumonia.hosp,p.pneumonia.hosp=p.pneumonia.hosp))
-  
-}
-
-
-########################
 ### SIMULATION LOGIC ###
 ########################
 
