@@ -23,37 +23,19 @@ library(triangle)
 # Do not forget to change this path into your personal working directory.
 wd <- setwd("C:/Users/Isaac/Dropbox/COPD")
 
-##########################
-### AUXILIAR FUNCTIONS ###
-##########################
- 
-### Read auxiliar function from a different file
-# source("COPD model simulation - auxiliar functions.R")
-
-# These functions are the following.
-
-### FEVPPA 
-
-#Equation 1B males (ECSC 1993 used by BI): if female=0 FEV1pred =  0.0430*htstd - 0.0290*age_time - 2.490.
-#Equation 1B females (ECSC 1993 used by BI):  if female=1 FEV1pred =  0.0395*htstd - 0.0250*age_time - 2.600.
-#Equation 1C: FEVPPA = FEVA / FEV1pred *100
+# This model makes use of previously estimated regression equations to predict COPD-related intermediate outcomes.
+# These regression equations were estimated somewhere else and the results (e.g. the regression coefficients) can be 
+# found in the paper by Hoogendoorn et al.
+# The simulation model reads these coefficients from previously saved .csv files. With these regression coefficients
+# and patient characteristics (that will be read from another file), the functions below can be used to predict COPD-related 
+# intermediate outcomes. 
+# You can choose to read these functions from a different R file. In that case, you would need a statement like this:
+# source("COPD model simulation - auxiliar functions.R"). 
+# However, in this case, we decided to show all functions in the same file.
 
 
-fevppa_calc <- function(female_input,height_input,age_input,feva_input){
-  
-  if(female_input==0){FEV1_pred <- 0.0430*height_input-0.0290*age_input-2.490}
-  if(female_input==1){FEV1_pred <- 0.0395*height_input-0.0250*age_input-2.600}
-  else{FEV1_pred <- female_input*(0.0395*height_input-0.0250*age_input-2.600)+(1-female_input)*(0.0430*height_input-0.0290*age_input-2.49)}
-  
-  fevppa <- max(0,100*(feva_input/FEV1_pred)) # Added max(0,x) to avoid negative numbers
-  return(list(fevppa=fevppa,FEV1_pred=FEV1_pred))
-  
-}
 
-
-####################
-### Predict FEV1 ###
-####################
+### Lung function defined as FEV1 
 
 predicted_fev1 <- function(run_obs_input,
                            regression_coefficents_fev1_input, 
@@ -80,6 +62,26 @@ predicted_fev1 <- function(run_obs_input,
   return(list(fev_1=fev_1))
   
 }
+
+
+### FEVPPA 
+
+#Equation 1B males (ECSC 1993 used by BI): if female=0 FEV1pred =  0.0430*htstd - 0.0290*age_time - 2.490.
+#Equation 1B females (ECSC 1993 used by BI):  if female=1 FEV1pred =  0.0395*htstd - 0.0250*age_time - 2.600.
+#Equation 1C: FEVPPA = FEVA / FEV1pred *100
+
+
+fevppa_calc <- function(female_input,height_input,age_input,feva_input){
+  
+  if(female_input==0){FEV1_pred <- 0.0430*height_input-0.0290*age_input-2.490}
+  if(female_input==1){FEV1_pred <- 0.0395*height_input-0.0250*age_input-2.600}
+  else{FEV1_pred <- female_input*(0.0395*height_input-0.0250*age_input-2.600)+(1-female_input)*(0.0430*height_input-0.0290*age_input-2.49)}
+  
+  fevppa <- max(0,100*(feva_input/FEV1_pred)) # Added max(0,x) to avoid negative numbers
+  return(list(fevppa=fevppa,FEV1_pred=FEV1_pred))
+  
+}
+
 
 
 ###################
