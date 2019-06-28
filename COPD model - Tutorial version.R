@@ -33,43 +33,34 @@ wd <- setwd("C:/Users/Isaac/Dropbox/COPD")
 # source("COPD model simulation - auxiliar functions.R"). 
 # However, in this case, we decided to show all functions in the same file.
 
+# Notation: as a general rule, names for function input parameters end with "_input".
 
+### LUNG FUNCTION
+# Lung function defined as FEV1 is predicted as a function of the previously estimated regression coefficients, 
+# patient characteristics and possibly a treatmemt effect.
 
-### Lung function defined as FEV1 
-
-predicted_fev1 <- function(run_obs_input,
-                           regression_coefficents_fev1_input, 
+predicted_fev1 <- function(regression_coefficents_fev1_input, 
                            patient_characteristics_fev1_input,
                            fev1_treatment_effect_input){
   
   patient_characteristics_fev1 <- as.numeric(patient_characteristics_fev1_input)
   
-  if(run_obs_input==1){
-    x <- c(1,patient_characteristics_fev1[1]*fev1_treatment_effect_input,  #this is anlyear in patient characteristics
-           patient_characteristics_fev1[16], #this is FEVA_BL in patient characteristics
-           patient_characteristics_fev1[17], #this is modexac in patient characteristics
-           patient_characteristics_fev1[18], #this is sevexac in patient characteristics
-           patient_characteristics_fev1[1]*fev1_treatment_effect_input*patient_characteristics_fev1[2:16]) 
-  }else{
-    x <- c(1,patient_characteristics_fev1[1]*fev1_treatment_effect_input, #this is anlyear
+  x <- c(1,patient_characteristics_fev1[1]*fev1_treatment_effect_input, #this is anlyear
            patient_characteristics_fev1[17], #this is FEVA_BL
            patient_characteristics_fev1[18], #this is modexac in patient characteristics
            patient_characteristics_fev1[19], #this is sevexac in patient characteristics
            patient_characteristics_fev1[1]*fev1_treatment_effect_input*patient_characteristics_fev1[2:17])
-  }
-  
+ 
   fev_1 <- sum(regression_coefficents_fev1_input*x)
-  return(list(fev_1=fev_1))
   
+  return(list(fev_1=fev_1))
 }
 
-
-### FEVPPA 
+# FEVPPA is calculated from FEV1 and it is different for females and males
 
 #Equation 1B males (ECSC 1993 used by BI): if female=0 FEV1pred =  0.0430*htstd - 0.0290*age_time - 2.490.
 #Equation 1B females (ECSC 1993 used by BI):  if female=1 FEV1pred =  0.0395*htstd - 0.0250*age_time - 2.600.
 #Equation 1C: FEVPPA = FEVA / FEV1pred *100
-
 
 fevppa_calc <- function(female_input,height_input,age_input,feva_input){
   
@@ -79,14 +70,11 @@ fevppa_calc <- function(female_input,height_input,age_input,feva_input){
   
   fevppa <- max(0,100*(feva_input/FEV1_pred)) # Added max(0,x) to avoid negative numbers
   return(list(fevppa=fevppa,FEV1_pred=FEV1_pred))
-  
 }
 
 
-
-###################
-### Predict CWE ###
-###################
+### EXERCISE CAPACITY 
+# Estimated as continuous exercise capacity (defined as treadmill test in seconds).
 
 predicted_cwe_tot <- function(regression_coefficents_cwe_tot_input, 
                               patient_characteristics_cwe_tot_input){
@@ -94,69 +82,68 @@ predicted_cwe_tot <- function(regression_coefficents_cwe_tot_input,
   totexa <- max(tail(patient_characteristics_cwe_tot_input,2))
   cwe_tot <- sum(regression_coefficents_cwe_tot_input*c(1,head(patient_characteristics_cwe_tot_input,-2),totexa))
   return(list(cwe_tot=cwe_tot))
-  
 }
 
 
-##############################
-### Predict breathlessness ###
-##############################
+### SHORTNESS OF BREATH
+# The probability of experiencing shortness of breath is a function of the previously estimated regression coefficients 
+# and patient characteristics. The function return also the log odds.  
 
 predicted_breathless <- function(regression_coefficents_breathless_input, 
                                  patient_characteristics_breathless_input){
   
   patient_characteristics_breathless_input <- as.numeric(patient_characteristics_breathless_input)
-  log.oods.breathless <- sum(regression_coefficents_breathless_input*c(1,patient_characteristics_breathless_input)) # this is log(ODDS)
-  p.breathless <- exp(log.oods.breathless)/(1+exp(log.oods.breathless))
-  return(list(log.oods.breathless=log.oods.breathless,p.breathless=p.breathless))
   
+  log.oods.breathless <- sum(regression_coefficents_breathless_input*c(1,patient_characteristics_breathless_input)) 
+  p.breathless <- exp(log.oods.breathless)/(1+exp(log.oods.breathless))
+  
+  return(list(log.oods.breathless=log.oods.breathless,p.breathless=p.breathless))
 }
 
 
-###########################
-### Predict coughsputum ###
-###########################
+### COUGH/SPUTUM
+# The probability of experiencing cough/sputum is a function of the previously estimated regression coefficients 
+# and patient characteristics. The function return also the log odds.  
 
 predicted_coughsputum <- function(regression_coefficents_coughsputum_input, 
                                   patient_characteristics_coughsputum_input){
-  
   patient_characteristics_coughsputum_input <- as.numeric(patient_characteristics_coughsputum_input)
+  
   log.oods.coughsputum <- sum(regression_coefficents_coughsputum_input*c(1,patient_characteristics_coughsputum_input)) # this is log(ODDS)
   p.coughsputum <- exp(log.oods.coughsputum)/(1+exp(log.oods.coughsputum))
-  return(list(log.oods.coughsputum=log.oods.coughsputum,p.coughsputum=p.coughsputum))
   
+  return(list(log.oods.coughsputum=log.oods.coughsputum,p.coughsputum=p.coughsputum))
 }
 
 
-###################################
-### Predict SGRQ Activity score ###
-###################################
+### PHYSICAL ACTIVITY
+
+# Predicted as SGRQ Activity score. It is a function of the previously estimated regression coefficients 
+# and patient characteristics.
 
 predicted_SGACT <- function(regression_coefficents_SGACT_input, 
                             patient_characteristics_SGACT_input){
   patient_characteristics_SGACT_input <- as.numeric(patient_characteristics_SGACT_input)
   SGACT <- sum(regression_coefficents_SGACT_input*c(1,patient_characteristics_SGACT_input))
   return(list(SGACT=SGACT))
-  
 }
 
 
-################################
-### Predict SGRQ total score ###
-################################
+### QUALITY OF LIFE
+# Disease specific quality of life defined as SGRQ total score. It is a function of the previously estimated regression coefficients 
+# and patient characteristics.
 
 predicted_SGTOT <- function(regression_coefficents_SGTOT_input, 
                             patient_characteristics_SGTOT_input){
   patient_characteristics_SGTOT_input <- as.numeric(patient_characteristics_SGTOT_input)
   SGTOT <- sum(regression_coefficents_SGTOT_input*c(1,patient_characteristics_SGTOT_input))
   return(list(SGTOT=SGTOT))
-  
 }
 
 
-#################################
-### Predict mortality_weibull ###
-#################################
+### TIME TO DEATH (AT BASELINE)
+# Time to death (at baseline) is a function of the previously estimated regression coefficients and patient characteristics.
+# It is assumed to follow a Weibull distribution.
 
 predicted_mortality_weibull <- function(regression_coefficents_mortality_weibull_input, 
                                         patient_characteristics_mortality_weibull_input){
@@ -169,13 +156,12 @@ predicted_mortality_weibull <- function(regression_coefficents_mortality_weibull
   scale_mortality_weibull <- exp(sum(head(regression_coefficents_mortality_weibull_input,n=-1)*c(1,patient_characteristics_mortality_weibull_input)) )
   return(list(shape_mortality_weibull=shape_mortality_weibull,
               scale_mortality_weibull=scale_mortality_weibull))
-  
 }
 
 
-####################################
-### Predict exacerbation_weibull ###
-####################################
+### TIME TO EXACERBATION
+# Time to exacerbation is a function of the previously estimated regression coefficients and patient characteristics.
+# It is assumed to follow a Weibull distribution.
 
 predicted_exacerbation_weibull <- function(regression_coefficents_exacerbation_weibull_input, 
                                            patient_characteristics_exacerbation_weibull_input){
@@ -188,13 +174,12 @@ predicted_exacerbation_weibull <- function(regression_coefficents_exacerbation_w
   scale_exacerbation_weibull <- exp(sum(head(regression_coefficents_exacerbation_weibull_input,n=-1)*c(1,patient_characteristics_exacerbation_weibull_input)) )
   return(list(shape_exacerbation_weibull=shape_exacerbation_weibull,
               scale_exacerbation_weibull=scale_exacerbation_weibull))
-  
 }
 
 
-#####################################
-### Predict exacerbation_severity ###
-#####################################
+### EXACERBATION SEVERITY
+# The probability of experiencing a severe exacerbation is a function of the previously estimated regression coefficients 
+# and patient characteristics. The function return also the log odds.  
 
 predicted_exacerbation_severity <- function(regression_coefficents_exacerbation_severity_input, 
                                             patient_characteristics_exacerbation_severity_input){
@@ -203,12 +188,12 @@ predicted_exacerbation_severity <- function(regression_coefficents_exacerbation_
   log.oods.exacerbation_severity <- sum(regression_coefficents_exacerbation_severity_input*c(1,patient_characteristics_exacerbation_severity_input)) # this is log(ODDS)
   p.exacerbation_severity <- exp(log.oods.exacerbation_severity)/(1+exp(log.oods.exacerbation_severity))
   return(list(log.oods.exacerbation_severity=log.oods.exacerbation_severity,p.exacerbation_severity=p.exacerbation_severity))
-  
 }
 
-#################################
-### Predict pneumonia_weibull ###
-#################################
+
+### TIME TO PNEUMONIA
+# Time to pneumonia is a function of the previously estimated regression coefficients and patient characteristics.
+# It is assumed to follow a Weibull distribution.
 
 predicted_pneumonia_weibull <- function(regression_coefficents_pneumonia_weibull_input, 
                                         patient_characteristics_pneumonia_weibull_input){
