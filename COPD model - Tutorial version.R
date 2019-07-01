@@ -230,7 +230,6 @@ predicted_SGTOT <- function(regression_coefficents_SGTOT_input,
 }
 
 
-
 # The main simulation starts below. The code is used to 1) simulate patients’ clinical history, 2) calculate costs and 
 # 3) calculate QALYs. Patients’ clinical histories are simulated first and, based on these, costs and QALYs are subsequently 
 # calculated. Note that this could be implemented as three independent functions but in this tutorial we decided to show everything
@@ -240,8 +239,21 @@ predicted_SGTOT <- function(regression_coefficents_SGTOT_input,
 # The input parameters of the COPD_model_simulation function are the following:
 # 1. patient_size_input = number of patients included in the simulation.
 # 2. run_PSA_input = runs the model in probabilistic mode. Otherwise, deterministic.
+
+# Eight treatment effect parameters:
+
 # 3. exac_treatment_effect_tte_input = variable to indicate increase (or decrease) in time to exacerbation. Default should be 1.
-# 4. fev1_treatment_effect_input = variable to indicate a reduction or increase in lung function decline
+# 4. exac_treatment_effect_sevexaprob_input
+# 5. fev1_treatment_effect_input = variable to indicate a reduction or increase in lung function decline
+# 6. cwe_treatment_effect_input = 
+# 7. sgact_treatment_effect_input = 
+# 8. coughsputum_treatment_effect_input = 
+# 9. breathless_treatment_effect_input = 
+# 10. sgtot_treatment_effect_input = 
+
+# A random seed that it is used to ensure consistency in the model results as explained in the draft paper submitted to MDM.
+
+# 11. seed_input = 
 
 COPD_model_simulation <- function(patient_size_input,
                                   run_PSA_input,
