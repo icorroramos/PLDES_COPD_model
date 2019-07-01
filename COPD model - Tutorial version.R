@@ -135,11 +135,11 @@ predicted_fev1 <- function(regression_coefficents_fev1_input,
   patient_characteristics_fev1 <- as.numeric(patient_characteristics_fev1_input)
   
   x <- c(1,patient_characteristics_fev1[1]*fev1_treatment_effect_input, #this is anlyear
-           patient_characteristics_fev1[17], #this is FEVA_BL
-           patient_characteristics_fev1[18], #this is modexac in patient characteristics
-           patient_characteristics_fev1[19], #this is sevexac in patient characteristics
-           patient_characteristics_fev1[1]*fev1_treatment_effect_input*patient_characteristics_fev1[2:17])
- 
+         patient_characteristics_fev1[17], #this is FEVA_BL
+         patient_characteristics_fev1[18], #this is modexac in patient characteristics
+         patient_characteristics_fev1[19], #this is sevexac in patient characteristics
+         patient_characteristics_fev1[1]*fev1_treatment_effect_input*patient_characteristics_fev1[2:17])
+  
   fev_1 <- sum(regression_coefficents_fev1_input*x)
   
   return(list(fev_1=fev_1))
@@ -238,9 +238,6 @@ predicted_SGTOT <- function(regression_coefficents_SGTOT_input,
 # is basically called multiple times.
 
 # The input parameters of the COPD_model_simulation function are the following:
-# 1. run_obs_input = 1 uses regression equations based on observed data. 
-# Otherwise, usees regression equations based on observed+predicted data -> Delete from code
-
 # 1. patient_size_input = number of patients included in the simulation.
 # 2. run_PSA_input = runs the model in probabilistic mode. Otherwise, deterministic.
 # 3. exac_treatment_effect_tte_input = variable to indicate increase (or decrease) in time to exacerbation. Default should be 1.
@@ -250,8 +247,7 @@ predicted_SGTOT <- function(regression_coefficents_SGTOT_input,
 #    to a dropdown list or similar. Default should be all patients (base-case) so no subgorup. -> Delete from code
 
 
-COPD_model_simulation <- function(run_obs_input,
-                                  patient_size_input,
+COPD_model_simulation <- function(patient_size_input,
                                   run_PSA_input,
                                   exac_treatment_effect_tte_input,
                                   exac_treatment_effect_sevexaprob_input,
@@ -267,118 +263,6 @@ COPD_model_simulation <- function(run_obs_input,
   
   
   
-  ### Step 1: Read regression coefficients depending on the data used to predict them.
-  ###         since the code is reading from csv files in certain folders, it is important to name these
-  ###         folders as suggested by the code.
-  
-  if(run_obs_input==1){
-    
-    lung_function_regression_coef         <- (read.csv(paste0(wd,c("/Model - regression coefficients/Lung function/lung_function_regression_coef_observed_data2.csv")),sep=";"))$Value
-    lung_function_cov_matrix              <- read.csv(paste0(wd,c("/Model - regression coefficients/Lung function/lung_function_cov_matrix_observed_data2.csv")),sep=";")
-    
-    cwe_tot_regression_coef               <- (read.csv(paste0(wd,c("/Model - regression coefficients/Exercise capacity/cwe_tot_regression_coef_observed_data_v3.csv")),sep=","))$Value
-    cwe_tot_cov_matrix                    <- read.csv(paste0(wd,c("/Model - regression coefficients/Exercise capacity/cwe_tot_cov_matrix_observed_data_v3.csv")),sep=";")
-    
-    breathless_regression_coef            <- (read.csv(paste0(wd,c("/Model - regression coefficients/Symptoms/breathless_regression_coef_observed_data_v2.csv")),sep=";"))$Estimate
-    breathless_cov_matrix                 <- read.csv(paste0(wd,c("/Model - regression coefficients/Symptoms/breathless_cov_matrix_observed_data_v2.csv")),sep=";")
-    
-    coughsputum_regression_coef           <- (read.csv(paste0(wd,c("/Model - regression coefficients/Symptoms/coughsputum_regression_coef_observed_data_v2.csv")),sep=";"))$Estimate
-    coughsputum_cov_matrix                <- read.csv(paste0(wd,c("/Model - regression coefficients/Symptoms/coughsputum_cov_matrix_observed_data_v2.csv")),sep=",")
-    
-    SGACT_regression_coef                 <- (read.csv(paste0(wd,c("/Model - regression coefficients/Physical activity/SGACT_regression_coef_observed_data_v2.csv")),sep=";"))$Value
-    SGACT_cov_matrix                      <- read.csv(paste0(wd,c("/Model - regression coefficients/Physical activity/SGACT_cov_matrix_observed_data_v2.csv")),sep=",")
-    
-    SGTOT_regression_coef                 <- (read.csv(paste0(wd,c("/Model - regression coefficients/Quality of life/SGTOT_regression_coef_observed_data_v2.csv")),sep=";"))$Value
-    SGTOT_cov_matrix                      <- read.csv(paste0(wd,c("/Model - regression coefficients/Quality of life/SGTOT_cov_matrix_observed_data_v2.csv")),sep=",")
-    
-    mortality_weibull_regression_coef     <- (read.csv(paste0(wd,c("/Model - regression coefficients/Mortality/mortality_weibull_regression_coef_observed_data.csv")),sep=";"))$Value
-    mortality_weibull_cov_matrix          <- read.csv(paste0(wd,c("/Model - regression coefficients/Mortality/mortality_weibull_cov_matrix_observed_data.csv")),sep=";")
-    
-    exacerbation_weibull_regression_coef  <- (read.csv(paste0(wd,c("/Model - regression coefficients/Exacerbations/exacerbation_weibull_regression_coef_observed_data.csv")),sep=";"))$Value
-    exacerbation_weibull_cov_matrix       <- read.csv(paste0(wd,c("/Model - regression coefficients/Exacerbations/exacerbation_weibull_cov_matrix_observed_data.csv")),sep=",")
-    
-    exacerbation_severity_regression_coef <- (read.csv(paste0(wd,c("/Model - regression coefficients/Exacerbations/exacerbation_severity_regression_coef_observed_data.csv")),sep=";"))$Estimate
-    exacerbation_severity_cov_matrix      <- read.csv(paste0(wd,c("/Model - regression coefficients/Exacerbations/exacerbation_severity_cov_matrix_observed_data.csv")),sep=";")
-    
-    pneumonia_weibull_regression_coef     <- (read.csv(paste0(wd,c("/Model - regression coefficients/Pneumonia/pneu_weibull_regression_coef_observed_data.csv")),sep=";"))$Value
-    pneumonia_weibull_cov_matrix          <- read.csv(paste0(wd,c("/Model - regression coefficients/Pneumonia/pneu_weibull_cov_matrix_observed_data.csv")),sep=",")
-    
-    pneumonia_hosp_regression_coef        <- (read.csv(paste0(wd,c("/Model - regression coefficients/Pneumonia/pneu_hosp_regression_coef_observed_data.csv")),sep=";"))$Estimate
-    pneumonia_hosp_cov_matrix             <- read.csv(paste0(wd,c("/Model - regression coefficients/Pneumonia/pneu_hosp_cov_matrix_observed_data.csv")),sep=",")
-    
-    
-    ### Step 2: assign predictors
-    
-    ### MIND THE PREDICTORS: WHEN DATA IS OBSERVED WE DONT USED CWE_TOT
-    
-    ### Note: I thouhgt of making the lists below more efficient but the order is important. This could be an improvement for the future.
-    
-    fev1_predictors <- c("ANLYEAR","female","AGE","BMIclass2","BMIclass3","SMOKER","SMPKY","other_CVD"
-                         ,"Reversibility","MH_DI","MH_DE","MH_CF","MH_RR","EMPHDIA","ICS"
-                         ,"FEVA_BL","modexac_yn","sevexac_yn")
-    
-    cwe_tot_predictors <- c("female","BMIclass2","BMIclass3","SMOKER","SMPKY","other_CVD"
-                            ,"MH_DI","MH_DE","MH_CF","MH_RR","EMPHDIA","ICS"
-                            ,"age_time","fevppa","lag_SGACT","lag_CWE_TOT","modexac_yn","sevexac_yn")
-    
-    breathless_predictors <- c("female","BMIclass2","BMIclass3","SMOKER","SMPKY_SCALED","other_CVD"
-                               ,"Reversibility_SCALED","MH_DI","MH_DE","MH_CF","MH_RR","EMPHDIA","ICS"
-                               ,"ANLYEAR_SCALED","AGE_SCALED", "fevppa_SCALED","modexac_yn","sevexac_yn",
-                               "SGACT_SCALED","lag_breathlessyn")
-    
-    coughsputum_predictors <- c("female","BMIclass2","BMIclass3","SMOKER","SMPKY_SCALED","other_CVD"
-                                ,"Reversibility_SCALED","MH_DI","MH_DE","MH_CF","MH_RR","EMPHDIA","ICS"
-                                ,"ANLYEAR_SCALED","AGE_SCALED","fevppa_SCALED","modexac_yn","sevexac_yn"
-                                ,"SGACT_SCALED","lag_coughsputumyn")
-    
-    SGACT_predictors <- c("female","BMIclass2","BMIclass3","SMOKER","SMPKY","other_CVD"
-                          ,"Reversibility","MH_DI","MH_DE","MH_CF","MH_RR","EMPHDIA","ICS"
-                          ,"ANLYEAR","AGE","fevppa","lag_SGACT", "lag_breathlessyn"
-                          ,"lag_coughsputumyn","lag_SGTOT")
-    
-    SGTOT_predictors <- c("female","BMIclass2","BMIclass3","SMOKER","SMPKY","other_CVD"
-                          ,"Reversibility","MH_DI","MH_DE","MH_CF","MH_RR","EMPHDIA","ICS"
-                          ,"ANLYEAR","AGE","fevppa","lag_SGTOT","modexac_yn","sevexac_yn","SGACT"
-                          ,"breathlessyn","coughsputumyn","pneu_yn") #No adverse events at baseline so all =0
-    
-    mortality_predictors <- c("female","AGE","BMIclass2","BMIclass3","SMOKER","SMPKY","other_CVD"
-                              ,"Reversibility","MH_DI","MH_DE","MH_CF","MH_RR","EMPHDIA","ICS"
-                              ,"fevppa","prevsevexacyn","SGACT"
-                              ,"breathlessyn","coughsputumyn","SGTOT")
-    
-    exacerbation_predictors <- c("female","BMIclass2","BMIclass3","SMOKER","SMPKY","other_CVD"
-                                 ,"Reversibility","MH_DI","MH_DE","MH_CF","MH_RR","EMPHDIA","ICS"
-                                 ,"lag_fevppa","lag_SGACT","prevtotexacyn","prevsevexacyn"
-                                 ,"lag_SGTOT","age_time")
-    
-    exacerbation_severity_predictors <- c("female","BMIclass2","BMIclass3","SMOKER","SMPKY_SCALED","other_CVD"
-                                          ,"Reversibility_SCALED","MH_DI","MH_DE","MH_CF","MH_RR","EMPHDIA","ICS"
-                                          , "lag_fevppa_SCALED","lag_SGACT_SCALED","prevtotexacyn", "prevsevexacyn"
-                                          , "lag_SGTOT_SCALED","age_time_SCALED")
-    
-    pneumonia_predictors <- c("female", "BMIclass2","BMIclass3","SMOKER","SMPKY","other_CVD"
-                              ,"Reversibility","MH_DI","MH_DE","MH_CF","MH_RR","EMPHDIA","ICS"
-                              ,"age_time")
-    
-    pneumonia_hosp_predictors <- c("female", "BMIclass2","BMIclass3","SMOKER","SMPKY_SCALED","other_CVD"
-                                   ,"Reversibility_SCALED","MH_DI","MH_DE","MH_CF","MH_RR","EMPHDIA","ICS"
-                                   ,"age_time_SCALED")
-    
-    ### Step 3: Read the data with the patient characteristics and select the complete cases (observations with all patient characteristics)
-    baseline_characteristics_run <- read.csv(paste0(wd,c("/Model - datasets/baseline_characteristics_observed_data.csv")),sep=",")
-    complete_cases <- baseline_characteristics_run[colnames(baseline_characteristics_run)[-c(17,18,51)]][complete.cases(baseline_characteristics_run[colnames(baseline_characteristics_run)[-c(17,18,51)]]),]
-    
-    
-    ### Step 4: indicate the patient characteristics that we will save during the simulation. Note CWE_TOT is not included 
-    ###         as predictor when the model is run in "observed" data mode. 
-    history_characteristics <- c("SIMID","PTID","ANLYEAR","age_time","FEVA","fevppa","sevexac_yn","modexac_yn","SGACT","SGTOT","coughsputumyn","breathlessyn","pneu_yn","pneu_hosp_yn","dead",
-                                   "female","AGE","BMIclass2","BMIclass3","SMOKER","SMPKY","other_CVD",
-                                   "Reversibility", "MH_DI","MH_DE","MH_CF","MH_RR","EMPHDIA","ICS","FEVA_BL","HTSTD",
-                                   "lag_SGACT","lag_breathlessyn","lag_coughsputumyn","lag_SGTOT",
-                                   "SMPKY_SCALED","Reversibility_SCALED","ANLYEAR_SCALED","AGE_SCALED","fevppa_SCALED","SGACT_SCALED")
-    
-  }else{
-    
     ### Step 1: read regression coefficients
     
     lung_function_regression_coef         <- (read.csv(paste0(wd,c("/Model - regression coefficients/Lung function/lung_function_regression_coef_predicted_data2.csv")),sep=","))$Value
@@ -417,8 +301,8 @@ COPD_model_simulation <- function(run_obs_input,
     ### Step 2: assign predictors
     
     fev1_predictors       <- c("ANLYEAR","female","AGE","BMIclass2","BMIclass3","SMOKER","SMPKY","other_CVD",
-                                "Reversibility","MH_DI","MH_DE","MH_CF","MH_RR","EMPHDIA","EOS_yn","ICS",
-                                "FEVA_BL","modexac_yn","sevexac_yn")
+                               "Reversibility","MH_DI","MH_DE","MH_CF","MH_RR","EMPHDIA","EOS_yn","ICS",
+                               "FEVA_BL","modexac_yn","sevexac_yn")
     
     cwe_tot_predictors    <- c("female","BMIclass2","BMIclass3","SMOKER","SMPKY","other_CVD",
                                "Reversibility","MH_DI","MH_DE","MH_CF","MH_RR","EMPHDIA","ICS", "EOS_yn",
@@ -471,8 +355,9 @@ COPD_model_simulation <- function(run_obs_input,
                                  "lag_SGACT","lag_CWE_TOT","lag_breathlessyn","lag_coughsputumyn","lag_SGTOT",
                                  "SMPKY_SCALED","Reversibility_SCALED","ANLYEAR_SCALED","AGE_SCALED","fevppa_SCALED","SGACT_SCALED","CWE_TOT_SCALED")
     
-  }
-   
+  
+    
+  
   
   ### Step 5: select subgroups 
   
@@ -484,7 +369,7 @@ COPD_model_simulation <- function(run_obs_input,
                            "Dynagito"              = complete_cases[which(complete_cases$prevtotexacyn==1 & complete_cases$fevppa<60),],
                            complete_cases) # last item is default = all population
   
-
+  
   ##################################################
   ########## MAIN PART I: simulate events ##########
   ##################################################
@@ -495,11 +380,7 @@ COPD_model_simulation <- function(run_obs_input,
   if(run_PSA_input == 1){
     
     lung_function_regression_coef <- mvrnorm(1,lung_function_regression_coef,lung_function_cov_matrix[,-1])
-    
-    if(run_obs_input==0){
-      cwe_tot_regression_coef <- mvrnorm(1,cwe_tot_regression_coef,cwe_tot_cov_matrix[,-1])
-    }
-    
+    cwe_tot_regression_coef <- mvrnorm(1,cwe_tot_regression_coef,cwe_tot_cov_matrix[,-1])
     SGACT_regression_coef                 <- mvrnorm(1,SGACT_regression_coef,SGACT_cov_matrix[,-1])
     SGTOT_regression_coef                 <- mvrnorm(1,SGTOT_regression_coef,SGTOT_cov_matrix[,-1])
     exacerbation_weibull_regression_coef  <- mvrnorm(1,exacerbation_weibull_regression_coef,exacerbation_weibull_cov_matrix[,-1])
@@ -551,7 +432,7 @@ COPD_model_simulation <- function(run_obs_input,
     # Print the patient index to know how advanced is the simulation.
     # Try to show this in the interface.
     if(run_PSA_input == 0){print(patient_index)}
-
+    
     # Pick the current patient from those selected fomr baseline
     current_patient <- simulation_baseline_patients[patient_index,]
     
@@ -563,7 +444,7 @@ COPD_model_simulation <- function(run_obs_input,
     current_patient$SIMID <- patient_index
     
     # Baseline predicted FEV1
-    current_patient$FEVA          <- max(0,predicted_fev1(run_obs_input,lung_function_regression_coef,current_patient[fev1_predictors],fev1_treatment_effect_input)$fev_1) 
+    current_patient$FEVA          <- max(0,predicted_fev1(lung_function_regression_coef,current_patient[fev1_predictors],fev1_treatment_effect_input)$fev_1) 
     baseline_fevppa_calc          <- fevppa_calc(current_patient$female,current_patient$HTSTD,current_patient$age_time,current_patient$FEVA)
     current_patient$fevppa        <- baseline_fevppa_calc$fevppa
     current_patient$FEV1pred      <- baseline_fevppa_calc$FEV1_pred
@@ -572,10 +453,8 @@ COPD_model_simulation <- function(run_obs_input,
     
     # Baseline predicted CWE (min observed is 42. here for now we truncate at 0)
     # Note that this is not used then the model is run in observed data mode.
-    if(run_obs_input==0){
-      current_patient$CWE_TOT        <- cwe_treatment_effect_input*max(0,predicted_cwe_tot(cwe_tot_regression_coef,current_patient[cwe_tot_predictors])$cwe_tot) #max(0,predicted_cwe_tot(cwe_tot_regression_coef$Value,current_patient[cwe_tot_predictors])$cwe_tot)
-      current_patient$CWE_TOT_SCALED <- (current_patient$CWE_TOT - attr(scale(baseline_characteristics_run$CWE_TOT),"scaled:center"))/attr(scale(baseline_characteristics_run$CWE_TOT),"scaled:scale")
-    }
+    current_patient$CWE_TOT        <- cwe_treatment_effect_input*max(0,predicted_cwe_tot(cwe_tot_regression_coef,current_patient[cwe_tot_predictors])$cwe_tot) #max(0,predicted_cwe_tot(cwe_tot_regression_coef$Value,current_patient[cwe_tot_predictors])$cwe_tot)
+    current_patient$CWE_TOT_SCALED <- (current_patient$CWE_TOT - attr(scale(baseline_characteristics_run$CWE_TOT),"scaled:center"))/attr(scale(baseline_characteristics_run$CWE_TOT),"scaled:scale")
     
     # Baseline predicted SGACT
     current_patient$SGACT        <- min(100,max(0,sgact_treatment_effect_input+predicted_SGACT(SGACT_regression_coef,current_patient[SGACT_predictors])$SGACT))
@@ -626,8 +505,8 @@ COPD_model_simulation <- function(run_obs_input,
       if(run_PSA_input == 0){
         set.seed(factor_for_seed*current_patient$SIMID + current_event)
       }else{
-          set.seed(factor_for_seed*seed_input*current_patient$SIMID + current_event)
-        }
+        set.seed(factor_for_seed*seed_input*current_patient$SIMID + current_event)
+      }
       
       #####################################################
       # STEP 3.1: Sample exacerbation and pneumonia time  #
@@ -682,7 +561,7 @@ COPD_model_simulation <- function(run_obs_input,
         
         # Update time-relatedcharacteristics
         current_patient_update$ANLYEAR         <- current_patient$ANLYEAR  + current_exacerbation_time
-        current_patient_update$ANLYEAR_SCALED  <- (current_patient_update$ANLYEAR - if(run_obs_input==1){0.962629}else{1.529411})/if(run_obs_input==1){0.9436266}else{1.376549} # hardcoded based on dataset
+        current_patient_update$ANLYEAR_SCALED  <- (current_patient_update$ANLYEAR - 1.529411)/1.376549 # hardcoded based on dataset
         current_patient_update$lag_ANLYEAR     <- current_exacerbation_time
         current_patient_update$age_time        <- current_patient$age_time + current_exacerbation_time
         current_patient_update$age_time_SCALED <- (current_patient_update$age_time - attr(scale(baseline_characteristics_run$age_time),"scaled:center"))/attr(scale(baseline_characteristics_run$age_time),"scaled:scale")
@@ -726,7 +605,7 @@ COPD_model_simulation <- function(run_obs_input,
         
         # Update time-relatedcharacteristics
         current_patient_update$ANLYEAR         <- current_patient$ANLYEAR  + current_pneumonia_time
-        current_patient_update$ANLYEAR_SCALED  <- (current_patient_update$ANLYEAR - if(run_obs_input==1){0.962629}else{1.529411})/if(run_obs_input==1){0.9436266}else{1.376549} # hardcoded based on dataset
+        current_patient_update$ANLYEAR_SCALED  <- (current_patient_update$ANLYEAR - 1.529411)/1.376549 # hardcoded based on dataset
         current_patient_update$lag_ANLYEAR     <- current_pneumonia_time
         current_patient_update$age_time        <- current_patient$age_time + current_pneumonia_time
         current_patient_update$age_time_SCALED <- (current_patient_update$age_time - attr(scale(baseline_characteristics_run$age_time),"scaled:center"))/attr(scale(baseline_characteristics_run$age_time),"scaled:scale")
@@ -763,7 +642,7 @@ COPD_model_simulation <- function(run_obs_input,
         
         # Update time-relatedcharacteristics
         current_patient_update$ANLYEAR          <- current_patient$ANLYEAR  + current_remaining_life_exp
-        current_patient_update$ANLYEAR_SCALED   <- (current_patient_update$ANLYEAR - if(run_obs_input==1){0.962629}else{1.529411})/if(run_obs_input==1){0.9436266}else{1.376549} # hardcoded based on dataset
+        current_patient_update$ANLYEAR_SCALED   <- (current_patient_update$ANLYEAR - 1.529411)/1.376549 # hardcoded based on dataset
         current_patient_update$lag_ANLYEAR      <- current_remaining_life_exp
         current_patient_update$age_time         <- current_patient$age_time + current_remaining_life_exp
         current_patient_update$age_time_SCALED  <- (current_patient_update$age_time - attr(scale(baseline_characteristics_run$age_time),"scaled:center"))/attr(scale(baseline_characteristics_run$age_time),"scaled:scale")
@@ -785,7 +664,7 @@ COPD_model_simulation <- function(run_obs_input,
       # Update FEV1, CWE, SGACT, symptoms and SGTOT. The order is important here:
       
       # Update FEV1
-      current_patient_update$FEVA          <- max(0,predicted_fev1(run_obs_input,lung_function_regression_coef,current_patient_update[fev1_predictors],fev1_treatment_effect_input)$fev_1) 
+      current_patient_update$FEVA          <- max(0,predicted_fev1(lung_function_regression_coef,current_patient_update[fev1_predictors],fev1_treatment_effect_input)$fev_1) 
       current_fevppa_calc                  <- fevppa_calc(current_patient_update$female,current_patient_update$HTSTD,current_patient_update$age_time,current_patient_update$FEVA)
       current_patient_update$fevppa        <- current_fevppa_calc$fevppa
       current_patient_update$FEV1pred      <- current_fevppa_calc$FEV1_pred
@@ -796,10 +675,8 @@ COPD_model_simulation <- function(run_obs_input,
       
       
       # Update CWE (min observed is 42. here for now we truncate at 0)
-      if(run_obs_input==0){
-        current_patient_update$CWE_TOT        <- cwe_treatment_effect_input*max(0,predicted_cwe_tot(cwe_tot_regression_coef,current_patient_update[cwe_tot_predictors])$cwe_tot) #max(0,predicted_cwe_tot(cwe_tot_regression_coef$Value,current_patient_update[cwe_tot_predictors])$cwe_tot)
-        current_patient_update$CWE_TOT_SCALED <- (current_patient_update$CWE_TOT - attr(scale(baseline_characteristics_run$CWE_TOT),"scaled:center"))/attr(scale(baseline_characteristics_run$CWE_TOT),"scaled:scale")
-      }
+      current_patient_update$CWE_TOT        <- cwe_treatment_effect_input*max(0,predicted_cwe_tot(cwe_tot_regression_coef,current_patient_update[cwe_tot_predictors])$cwe_tot) #max(0,predicted_cwe_tot(cwe_tot_regression_coef$Value,current_patient_update[cwe_tot_predictors])$cwe_tot)
+      current_patient_update$CWE_TOT_SCALED <- (current_patient_update$CWE_TOT - attr(scale(baseline_characteristics_run$CWE_TOT),"scaled:center"))/attr(scale(baseline_characteristics_run$CWE_TOT),"scaled:scale")
       
       # Update SGACT
       current_patient_update$SGACT        <- min(100,max(0,sgact_treatment_effect_input+predicted_SGACT(SGACT_regression_coef,current_patient_update[SGACT_predictors])$SGACT))
@@ -848,13 +725,11 @@ COPD_model_simulation <- function(run_obs_input,
   ########## MAIN PART II: Update intermediate outcomes after every year ##########
   #################################################################################
   
-  patient_characteristics_saved <- if(run_obs_input==0){c("SIMID","PTID","ANLYEAR","age_time","FEVA","fevppa","sevexac_yn","modexac_yn","CWE_TOT",
-                                                          "SGACT","SGTOT","coughsputumyn","breathlessyn","pneu_yn","pneu_hosp_yn","dead")}
-                                                   else{c("SIMID","PTID","ANLYEAR","age_time","FEVA","fevppa","sevexac_yn","modexac_yn",
-                                                          "SGACT","SGTOT","coughsputumyn","breathlessyn","pneu_yn","pneu_hosp_yn","dead")}
+  patient_characteristics_saved <- c("SIMID","PTID","ANLYEAR","age_time","FEVA","fevppa","sevexac_yn","modexac_yn",
+                                     "SGACT","SGTOT","coughsputumyn","breathlessyn","pneu_yn","pneu_hosp_yn","dead")
   
   
-  #patient_event_history_update <- simulation_baseline_patients[FALSE,c(patient_characteristics_saved)]
+  
   patient_event_history_update <- simulation_patients_history[FALSE,c(patient_characteristics_saved)]
   
   
@@ -893,16 +768,16 @@ COPD_model_simulation <- function(run_obs_input,
         current_patient_event_history_update[j,]$MH_CF                <- current_patient_event_history_update[j-1,]$MH_CF
         current_patient_event_history_update[j,]$MH_RR                <- current_patient_event_history_update[j-1,]$MH_RR
         current_patient_event_history_update[j,]$EMPHDIA              <- current_patient_event_history_update[j-1,]$EMPHDIA
-        if(run_obs_input==0){
-          current_patient_event_history_update[j,]$EOS_yn               <- current_patient_event_history_update[j-1,]$EOS_yn
-        }
+        
+        current_patient_event_history_update[j,]$EOS_yn               <- current_patient_event_history_update[j-1,]$EOS_yn
+        
         current_patient_event_history_update[j,]$ICS                  <- current_patient_event_history_update[j-1,]$ICS
         current_patient_event_history_update[j,]$FEVA_BL              <- current_patient_event_history_update[j-1,]$FEVA_BL
         current_patient_event_history_update[j,]$HTSTD                <- current_patient_event_history_update[j-1,]$HTSTD
         
         
         current_patient_event_history_update[j,]$ANLYEAR         <- current_patient_event_history_update[j-1,]$ANLYEAR + 1 
-        current_patient_event_history_update[j,]$ANLYEAR_SCALED  <- (current_patient_event_history_update[j,]$ANLYEAR - if(run_obs_input==1){0.962629}else{1.529411})/if(run_obs_input==1){0.9436266}else{1.376549}
+        current_patient_event_history_update[j,]$ANLYEAR_SCALED  <- (current_patient_event_history_update[j,]$ANLYEAR - 1.529411)/1.376549
         
         current_patient_event_history_update[j,]$age_time     <- current_patient_event_history_update[j-1,]$age_time + 1 
         current_patient_event_history_update[j,]$sevexac_yn   <- 0
@@ -912,7 +787,7 @@ COPD_model_simulation <- function(run_obs_input,
         current_patient_event_history_update[j,]$dead         <- 0
         
         
-        current_patient_event_history_update[j,]$FEVA         <- max(0,predicted_fev1(run_obs_input,lung_function_regression_coef,current_patient_event_history_update[j,][fev1_predictors],fev1_treatment_effect_input)$fev_1) 
+        current_patient_event_history_update[j,]$FEVA         <- max(0,predicted_fev1(lung_function_regression_coef,current_patient_event_history_update[j,][fev1_predictors],fev1_treatment_effect_input)$fev_1) 
         current_patient_event_history_update_fevppa_calc      <- fevppa_calc(current_patient_event_history_update[j,]$female,current_patient_event_history_update[j,]$HTSTD,current_patient_event_history_update[j,]$age_time,current_patient_event_history_update[j,]$FEVA)
         current_patient_event_history_update[j,]$fevppa       <- current_patient_event_history_update_fevppa_calc$fevppa
         #current_patient_event_history_update[j,]$FEV1pred     <- current_patient_event_history_update_fevppa_calc$FEV1_pred
@@ -920,12 +795,9 @@ COPD_model_simulation <- function(run_obs_input,
         
         current_patient_event_history_update[j,]$lag_SGACT    <- current_patient_event_history_update[j-1,]$SGACT 
         
-        if(run_obs_input==0){
-          current_patient_event_history_update[j,]$lag_CWE_TOT    <- current_patient_event_history_update[j-1,]$CWE_TOT
-          current_patient_event_history_update[j,]$CWE_TOT        <- max(0,predicted_cwe_tot(cwe_tot_regression_coef,current_patient_event_history_update[j,][cwe_tot_predictors])$cwe_tot) #max(0,predicted_cwe_tot(cwe_tot_regression_coef$Value,current_patient_event_history_update[j,][cwe_tot_predictors])$cwe_tot)    
-          current_patient_event_history_update[j,]$CWE_TOT_SCALED <- (current_patient_event_history_update[j,]$CWE_TOT - attr(scale(baseline_characteristics_run$CWE_TOT),"scaled:center"))/attr(scale(baseline_characteristics_run$CWE_TOT),"scaled:scale")
-        }
-        
+        current_patient_event_history_update[j,]$lag_CWE_TOT    <- current_patient_event_history_update[j-1,]$CWE_TOT
+        current_patient_event_history_update[j,]$CWE_TOT        <- max(0,predicted_cwe_tot(cwe_tot_regression_coef,current_patient_event_history_update[j,][cwe_tot_predictors])$cwe_tot) #max(0,predicted_cwe_tot(cwe_tot_regression_coef$Value,current_patient_event_history_update[j,][cwe_tot_predictors])$cwe_tot)    
+        current_patient_event_history_update[j,]$CWE_TOT_SCALED <- (current_patient_event_history_update[j,]$CWE_TOT - attr(scale(baseline_characteristics_run$CWE_TOT),"scaled:center"))/attr(scale(baseline_characteristics_run$CWE_TOT),"scaled:scale")
         
         current_patient_event_history_update[j,]$lag_breathlessyn  <- current_patient_event_history_update[j-1,]$breathlessyn
         current_patient_event_history_update[j,]$lag_coughsputumyn <- current_patient_event_history_update[j-1,]$coughsputumyn
@@ -963,20 +835,20 @@ COPD_model_simulation <- function(run_obs_input,
   patient_event_history_update$diff_FEVA    <- "NA"
   patient_event_history_update$diff_SGTOT   <- "NA"
   patient_event_history_update$diff_SGACT   <- "NA"
-  if(run_obs_input==0){patient_event_history_update$diff_CWE_TOT <- "NA"}
+  patient_event_history_update$diff_CWE_TOT <- "NA"
   
   ### Calculate the "diff" variables to calculate the change in outcomes per year
   diff_ANLYEAR <- ddply(patient_event_history_update, "SIMID", summarize, diff_ANLYEAR = c(0,diff(ANLYEAR)))
   diff_FEVA    <- ddply(patient_event_history_update, "SIMID", summarize, diff_FEVA    = c(0,diff(FEVA)))
   diff_SGTOT   <- ddply(patient_event_history_update, "SIMID", summarize, diff_SGTOT   = c(0,diff(SGTOT)))
   diff_SGACT   <- ddply(patient_event_history_update, "SIMID", summarize, diff_SGACT   = c(0,diff(SGACT)))
-  if(run_obs_input==0){diff_CWE_TOT <- ddply(patient_event_history_update, "SIMID", summarize, diff_CWE_TOT = c(0,diff(CWE_TOT)))}
+  diff_CWE_TOT <- ddply(patient_event_history_update, "SIMID", summarize, diff_CWE_TOT = c(0,diff(CWE_TOT)))
   
   patient_event_history_update$diff_ANLYEAR <- diff_ANLYEAR$diff_ANLYEAR
   patient_event_history_update$diff_FEVA    <- diff_FEVA$diff_FEVA
   patient_event_history_update$diff_SGTOT   <- diff_SGTOT$diff_SGTOT
   patient_event_history_update$diff_SGACT   <- diff_SGACT$diff_SGACT
-  if(run_obs_input==0){patient_event_history_update$diff_CWE_TOT <- diff_CWE_TOT$diff_CWE_TOT}
+  patient_event_history_update$diff_CWE_TOT <- diff_CWE_TOT$diff_CWE_TOT
   
   ### Calculate model outcomes ###
   
@@ -1005,7 +877,7 @@ COPD_model_simulation <- function(run_obs_input,
   
   
   ### Exercise capacity
-  mean_CWE_TOT_change <- if(run_obs_input==0){round(mean(patient_event_history_update$diff_CWE_TOT)/mean(patient_event_history_update$diff_ANLYEAR),4)}else{0}
+  mean_CWE_TOT_change <- round(mean(patient_event_history_update$diff_CWE_TOT)/mean(patient_event_history_update$diff_ANLYEAR),4)
   
   ### SGRQ activity score 
   mean_SGACT_change <- round(mean(patient_event_history_update$diff_SGACT)/mean(patient_event_history_update$diff_ANLYEAR),4)
@@ -1075,7 +947,7 @@ COPD_model_simulation <- function(run_obs_input,
   # Order the dataset by "SIMID". This is very important because after merging the order is lost.
   patient_event_history_update <- patient_event_history_update[order(patient_event_history_update$SIMID,patient_event_history_update$ANLYEAR),]
   
-
+  
   ### These are the simulated utilities: Changed with respect to the previous version: now it's vectorized and therefore faster.
   utilities <- round(0.9617-0.0013*(patient_event_history_update$SGTOT)-0.0001*((patient_event_history_update$SGTOT)^2) + ifelse(patient_event_history_update$female==0,0.0231,0),4)
   
@@ -1192,7 +1064,7 @@ COPD_model_simulation <- function(run_obs_input,
                mod_exa_work_days_lost_cost,
                mod_exa_distance_pcc_cost,
                mod_exa_distance_sc_cost),
-               mod_exa_average_cost)
+           mod_exa_average_cost)
     
   }
   
@@ -1633,22 +1505,22 @@ COPD_model_simulation <- function(run_obs_input,
 # # 2. Select the number of patients in the simulation
 # 
 # 
-# COPD_simulation_deterministic_results <- COPD_model_simulation(0, # 0 = predicted equations / 1 = observed equations
-#                                                                500, # Patient size
-#                                                                0, # 0 = deterministic run / 1 = probabilistic run
-#                                                                1, # Treatment effect: factor on time to exacerbation (report 1.3)
-#                                                                1, # Treatment effect: factor on probability of severe exacerbation (report NA)
-#                                                                1, # Treatment effect: factor on fev1 change (report 0.8)
-#                                                                1, # Treatment effect: factor on cwe score change (report 1.2)
-#                                                                0, # Treatment effect: absolute change in SGRQ activity score (report -4)
-#                                                                1, # Treatment effect: factor on probability of cough/sputum (report 0.8)
-#                                                                1, # Treatment effect: factor on probability of shortness of breath (report 0.8)
-#                                                                0, # Treatment effect: absolute change in SGRQ total score (report -4)
-#                                                                "", # Subgroup
-#                                                                177) # random seed input: for the report I used seed =177
-# 
-# 
-# COPD_simulation_deterministic_results
+COPD_simulation_deterministic_results <- COPD_model_simulation(0, # 0 = predicted equations / 1 = observed equations
+                                                               500, # Patient size
+                                                               0, # 0 = deterministic run / 1 = probabilistic run
+                                                               1, # Treatment effect: factor on time to exacerbation (report 1.3)
+                                                               1, # Treatment effect: factor on probability of severe exacerbation (report NA)
+                                                               1, # Treatment effect: factor on fev1 change (report 0.8)
+                                                               1, # Treatment effect: factor on cwe score change (report 1.2)
+                                                               0, # Treatment effect: absolute change in SGRQ activity score (report -4)
+                                                               1, # Treatment effect: factor on probability of cough/sputum (report 0.8)
+                                                               1, # Treatment effect: factor on probability of shortness of breath (report 0.8)
+                                                               0, # Treatment effect: absolute change in SGRQ total score (report -4)
+                                                               "", # Subgroup
+                                                               177) # random seed input: for the report I used seed =177
+
+
+COPD_simulation_deterministic_results
 # 
 # # For the PE paper
 # # Run all scenarios with 500 patients
@@ -1671,7 +1543,6 @@ COPD_model_simulation <- function(run_obs_input,
 ### This is basically calling the simulation function multiple times and getting the average results
 
 COPD_model_PSA <- function(psa_size_input,
-                           run_obs_input,
                            patient_size_input,
                            exac_treatment_effect_tte_input,
                            exac_treatment_effect_sevexa_input,
@@ -1708,8 +1579,7 @@ COPD_model_PSA <- function(psa_size_input,
     
     print(i)
     
-    current_psa <- COPD_model_simulation(run_obs_input,
-                                         patient_size_input,
+    current_psa <- COPD_model_simulation(patient_size_input,
                                          1, #note 1 here hardcoded
                                          exac_treatment_effect_tte_input,
                                          exac_treatment_effect_sevexa_input,
