@@ -237,14 +237,17 @@ predicted_SGTOT <- function(regression_coefficents_SGTOT_input,
 # as one larger function called COPD_model_simulation. If a probabilistic sensitivity analysis is conducted, this function
 # is basically called multiple times.
 
-### Simulation parameters
-### 1. run_obs_input = 1 uses regression equations based on observed data. Otherwise, usees regression equations based on observed+predicted data
-### 2. patient_size_input = number of patients included in the simulation.
-### 3. run_PSA_input = runs the model in probabilistic mode. Otherwise, deterministic.
-### 4. exac_treatment_effect_tte_input = variable to indicate increase (or decrease) in time to exacerbation. Default should be 1.
-### 5. fev1_treatment_effect_input = variable to indicate a reduction or increase in lung function decline
-### 6. subgroup_input = variable string to indicate which set of patients should be used in the analysis. This should be linked
-###    to a dropdown list or similar. Default should be all patients (base-case) so no subgorup.
+# The input parameters of the COPD_model_simulation function are the following:
+# 1. run_obs_input = 1 uses regression equations based on observed data. 
+# Otherwise, usees regression equations based on observed+predicted data -> Delete from code
+
+# 1. patient_size_input = number of patients included in the simulation.
+# 2. run_PSA_input = runs the model in probabilistic mode. Otherwise, deterministic.
+# 3. exac_treatment_effect_tte_input = variable to indicate increase (or decrease) in time to exacerbation. Default should be 1.
+# 4. fev1_treatment_effect_input = variable to indicate a reduction or increase in lung function decline
+
+# 6. subgroup_input = variable string to indicate which set of patients should be used in the analysis. This should be linked
+#    to a dropdown list or similar. Default should be all patients (base-case) so no subgorup. -> Delete from code
 
 
 COPD_model_simulation <- function(run_obs_input,
