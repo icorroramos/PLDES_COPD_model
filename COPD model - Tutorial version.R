@@ -468,11 +468,7 @@ COPD_model_simulation <- function(run_obs_input,
                                  "SMPKY_SCALED","Reversibility_SCALED","ANLYEAR_SCALED","AGE_SCALED","fevppa_SCALED","SGACT_SCALED","CWE_TOT_SCALED")
     
   }
-  
-  
-  ### The line below was used to run the model for the "average" patient mode. Not sure if we will do this in the future.
-  ### baseline_characteristics_run_average <- data.frame(t(colMeans(baseline_characteristics_run[,-(1:2)],na.rm=TRUE)))
-  
+   
   
   ### Step 5: select subgroups 
   
@@ -543,10 +539,6 @@ COPD_model_simulation <- function(run_obs_input,
   
   ### Choose the 1st patient (later make a loop)
   patient_index <- 1
-  
-  
-
-  
   
   
   ### Begin the loop on the simulation size (i.e. the number of patients you want to simulate)
@@ -1400,9 +1392,6 @@ COPD_model_simulation <- function(run_obs_input,
   # Base case
   maintenance_costs <- read.csv("Model - datasets/Costs/maintenance costs.csv",sep=";",row.names = maintenance_costs_row_names)
   
-  #Dynagito scenario
-  #maintenance_costs <- read.csv("Model - datasets/Costs/maintenance costs - FR.csv",sep=",",row.names = maintenance_costs_row_names)
-  
   #maintenance_costs
   
   ### Adjust then the number of gp and spec visits and multiply by the time interval where occurs
@@ -1793,14 +1782,6 @@ COPD_model_PSA_output <- COPD_model_PSA(psa_size,
                                         sgtot_treatment_effect,
                                         subgroup)
 
-
-
-tot_time <- proc.time() - init_time #in seconds
-
-(tot_time/60) #minutes
-
-(tot_time/60)/60 #hours
-
 PSA_summary_table <- data.frame(COPD_model_PSA_output$psa_history)
 
 colnames(PSA_summary_table) <- c("Annual FEV1 decline",
@@ -1828,7 +1809,5 @@ PSA_summary_table <- rbind(PSA_summary_table,colMeans(PSA_summary_table))
 PSA_summary_table <- rbind(PSA_summary_table,lapply(PSA_summary_table[1:psa_size,], quantile, probs=c(0.025,0.975), name=FALSE))
 
 rownames(PSA_summary_table) <- c(1:psa_size,"Mean","2.5%", "97.5%")
-
-PSA_summary_table
 
 write.csv(PSA_summary_table, paste("PE paper/",Sys.Date(),"_",psa_size,"x",patient_size,"_base_case_no_seed_PE_paper",'.csv', sep=''))
