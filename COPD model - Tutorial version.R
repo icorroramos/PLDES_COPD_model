@@ -16,7 +16,6 @@ library(lattice)
 library(MASS)
 library(survival)
 library(plyr)
-library(triangle)
 
 # When you are reading external files and exporting results you may set a working directory.
 # This can be for example the folder where you saved some previous results.
@@ -231,10 +230,12 @@ predicted_SGTOT <- function(regression_coefficents_SGTOT_input,
 }
 
 
-### CONTINUE HERE
 
-### SIMULATION LOGIC ###
-########################
+# The main simulation starts below. The code is used to 1) simulate patients’ clinical history, 2) calculate costs and 
+# 3) calculate QALYs. Patients’ clinical histories are simulated first and, based on these, costs and QALYs are subsequently 
+# calculated. Note that this could be implemented as three independent functions but in this tutorial we decided to show everything
+# as one larger function called COPD_model_simulation. If a probabilistic sensitivity analysis is conducted, this function
+# is basically called multiple times.
 
 ### Simulation parameters
 ### 1. run_obs_input = 1 uses regression equations based on observed data. Otherwise, usees regression equations based on observed+predicted data
