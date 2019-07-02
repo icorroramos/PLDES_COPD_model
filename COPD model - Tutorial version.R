@@ -370,8 +370,8 @@ COPD_model_simulation <- function(patient_size_input,
   
   if(run_PSA_input == 1){
     
-    lung_function_regression_coef <- mvrnorm(1,lung_function_regression_coef,lung_function_cov_matrix[,-1])
-    cwe_tot_regression_coef <- mvrnorm(1,cwe_tot_regression_coef,cwe_tot_cov_matrix[,-1])
+    lung_function_regression_coef         <- mvrnorm(1,lung_function_regression_coef,lung_function_cov_matrix[,-1])
+    cwe_tot_regression_coef               <- mvrnorm(1,cwe_tot_regression_coef,cwe_tot_cov_matrix[,-1])
     SGACT_regression_coef                 <- mvrnorm(1,SGACT_regression_coef,SGACT_cov_matrix[,-1])
     SGTOT_regression_coef                 <- mvrnorm(1,SGTOT_regression_coef,SGTOT_cov_matrix[,-1])
     exacerbation_weibull_regression_coef  <- mvrnorm(1,exacerbation_weibull_regression_coef,exacerbation_weibull_cov_matrix[,-1])
@@ -383,7 +383,6 @@ COPD_model_simulation <- function(patient_size_input,
     mortality_weibull_regression_coef     <- mvrnorm(1,mortality_weibull_regression_coef,mortality_weibull_cov_matrix[,-1]) 
     
     ### Treatment effect parameters must come at the end to ensure the same random seed in treatment arm  
-    ### Consider changing the names of thees 3 calculated variables
     exac_treatment_effect_tte_input        <- runif(1,min(c(exac_treatment_effect_tte_input-(exac_treatment_effect_tte_input-1)*0.1,exac_treatment_effect_tte_input+(exac_treatment_effect_tte_input-1)*0.1)),max(c(exac_treatment_effect_tte_input-(exac_treatment_effect_tte_input-1)*0.1,exac_treatment_effect_tte_input+(exac_treatment_effect_tte_input-1)*0.1)))
     exac_treatment_effect_sevexaprob_input <- runif(1,min(c(exac_treatment_effect_sevexaprob_input-(exac_treatment_effect_sevexaprob_input-1)*0.1,exac_treatment_effect_sevexaprob_input+(exac_treatment_effect_sevexaprob_input-1)*0.1)),max(c(exac_treatment_effect_sevexaprob_input-(exac_treatment_effect_sevexaprob_input-1)*0.1,exac_treatment_effect_sevexaprob_input+(exac_treatment_effect_sevexaprob_input-1)*0.1)))
     fev1_treatment_effect_input            <- runif(1,min(c(fev1_treatment_effect_input-(fev1_treatment_effect_input-1)*0.1,fev1_treatment_effect_input+(fev1_treatment_effect_input-1)*0.1)),max(c(fev1_treatment_effect_input-(fev1_treatment_effect_input-1)*0.1,fev1_treatment_effect_input+(fev1_treatment_effect_input-1)*0.1)))
@@ -706,16 +705,14 @@ COPD_model_simulation <- function(patient_size_input,
     
   } #end for loop in number of patients
   
-  # Output from PART I
-    
+  
+      
   #################################################################################
   ########## MAIN PART II: Update intermediate outcomes after every year ##########
   #################################################################################
   
   patient_characteristics_saved <- c("SIMID","PTID","ANLYEAR","age_time","FEVA","fevppa","sevexac_yn","modexac_yn",
                                      "SGACT","SGTOT","coughsputumyn","breathlessyn","pneu_yn","pneu_hosp_yn","dead")
-  
-  
   
   patient_event_history_update <- simulation_patients_history[FALSE,c(patient_characteristics_saved)]
   
@@ -739,15 +736,15 @@ COPD_model_simulation <- function(patient_size_input,
       
       if(is.na(current_patient_event_history_update[j,]$ANLYEAR)==TRUE){
         
-        current_patient_event_history_update[j,]$female        <- current_patient_event_history_update[j-1,]$female
-        current_patient_event_history_update[j,]$AGE           <- current_patient_event_history_update[j-1,]$AGE
-        current_patient_event_history_update[j,]$AGE_SCALED    <- current_patient_event_history_update[j-1,]$AGE_SCALED
-        current_patient_event_history_update[j,]$BMIclass2     <- current_patient_event_history_update[j-1,]$BMIclass2  
-        current_patient_event_history_update[j,]$BMIclass3     <- current_patient_event_history_update[j-1,]$BMIclass3
-        current_patient_event_history_update[j,]$SMOKER        <- current_patient_event_history_update[j-1,]$SMOKER
-        current_patient_event_history_update[j,]$SMPKY         <- current_patient_event_history_update[j-1,]$SMPKY
-        current_patient_event_history_update[j,]$SMPKY_SCALED  <- current_patient_event_history_update[j-1,]$SMPKY_SCALED
-        current_patient_event_history_update[j,]$other_CVD     <- current_patient_event_history_update[j-1,]$other_CVD  
+        current_patient_event_history_update[j,]$female               <- current_patient_event_history_update[j-1,]$female
+        current_patient_event_history_update[j,]$AGE                  <- current_patient_event_history_update[j-1,]$AGE
+        current_patient_event_history_update[j,]$AGE_SCALED           <- current_patient_event_history_update[j-1,]$AGE_SCALED
+        current_patient_event_history_update[j,]$BMIclass2            <- current_patient_event_history_update[j-1,]$BMIclass2  
+        current_patient_event_history_update[j,]$BMIclass3            <- current_patient_event_history_update[j-1,]$BMIclass3
+        current_patient_event_history_update[j,]$SMOKER               <- current_patient_event_history_update[j-1,]$SMOKER
+        current_patient_event_history_update[j,]$SMPKY                <- current_patient_event_history_update[j-1,]$SMPKY
+        current_patient_event_history_update[j,]$SMPKY_SCALED         <- current_patient_event_history_update[j-1,]$SMPKY_SCALED
+        current_patient_event_history_update[j,]$other_CVD            <- current_patient_event_history_update[j-1,]$other_CVD  
         current_patient_event_history_update[j,]$Reversibility        <- current_patient_event_history_update[j-1,]$Reversibility
         current_patient_event_history_update[j,]$Reversibility_SCALED <- current_patient_event_history_update[j-1,]$Reversibility_SCALED 
         current_patient_event_history_update[j,]$MH_DI                <- current_patient_event_history_update[j-1,]$MH_DI
@@ -1075,7 +1072,7 @@ COPD_model_simulation <- function(patient_size_input,
     }
     
     #sev_exa_cost_total <- 
-    ifelse(cost_type=="Health care use",
+    ifelse(cost_type=="Health care use", 
            sum(sev_exa_primary_care_cost,
                sev_exa_secondary_care_cost,
                sev_exa_hospital_days_cost,
@@ -1085,9 +1082,8 @@ COPD_model_simulation <- function(patient_size_input,
                sev_exa_steroids_cost,
                sev_exa_work_days_lost_cost,
                sev_exa_distance_pcc_cost,
-               sev_exa_distance_sc_cost),
-           sev_exa_average_cost)
-    
+               sev_exa_distance_sc_cost
+              ), sev_exa_average_cost)
   }
   
   
@@ -1188,10 +1184,7 @@ COPD_model_simulation <- function(patient_size_input,
   
   ### Merge the two datsets: I'm creating another file here because I don't want to save all the patient
   ### characteristics in the simulated results file
-  #AVERAGE
   patient_event_history_update_maintenance_costs <- merge(patient_event_history_update[,1:19],baseline_characteristics[c("PTID",gpvisits_stable_predictors)],by.x = "PTID",by.y = "PTID")
-  
-  #patient_event_history_update_maintenance_costs <- merge(patient_event_history_update[,1:19],baseline_characteristics_run_average[,c(gpvisits_stable_predictors)])
   
   ### Order the dataset by "SIMID". This is very important because after merging the order is lost.
   patient_event_history_update_maintenance_costs <- patient_event_history_update_maintenance_costs[order(patient_event_history_update_maintenance_costs$SIMID),]
@@ -1213,10 +1206,7 @@ COPD_model_simulation <- function(patient_size_input,
     patient_characteristics_specvisits_input <- as.numeric(patient_characteristics_specvisits_input)
     specvisits <- sum(regression_coefficents_specvisits_input*c(1,patient_characteristics_specvisits_input))
     return(list(specvisits=specvisits))
-    
   }
-  
-  
   
   ### And finally predict for the simulation results
   predicted_gpvisits_calc <-function(index){
@@ -1225,9 +1215,8 @@ COPD_model_simulation <- function(patient_size_input,
   
   num_gpvisits <- sapply(1:nrow(patient_event_history_update),predicted_gpvisits_calc) 
   
-  
   predicted_specvisits_calc <-function(index){
-    exp(predicted_specvisits(specvisits_regression_coef$Estimate,patient_event_history_update_maintenance_costs[index,specvisits_predictors])$specvisits)
+  exp(predicted_specvisits(specvisits_regression_coef$Estimate,patient_event_history_update_maintenance_costs[index,specvisits_predictors])$specvisits)
   }
   
   num_specvisits <- sapply(1:nrow(patient_event_history_update),predicted_specvisits_calc)
@@ -1261,10 +1250,7 @@ COPD_model_simulation <- function(patient_size_input,
   num_specvisits_country  <- maintenance_costs[2,1]
   patient_event_history_update$adjusted_num_specvisits <- (patient_event_history_update$num_specvisits*num_specvisits_country/num_specvisits_observed)*patient_event_history_update$diff_ANLYEAR
   
-  
   ### Add the costs per visit
-  
-  #Dynagito and base case as well
   patient_event_history_update$maintenance_gpvisits_cost_hc              <- patient_event_history_update$adjusted_num_gpvisits*maintenance_costs[1,2]
   patient_event_history_update$maintenance_gpvisits_cost_hc_discounted   <- patient_event_history_update$maintenance_gpvisits_cost_hc/(1+discount_rate_costs)^patient_event_history_update$ANLYEAR
   patient_event_history_update$maintenance_specvisits_cost_hc            <- patient_event_history_update$adjusted_num_specvisits*maintenance_costs[2,2]
@@ -1437,17 +1423,7 @@ COPD_model_simulation <- function(patient_size_input,
   mean_total_costs_hc_disc <- round(mean(total_costs_hc_discounted_patient$x),0)
   
   
-  ####################################
-  ### Save patient history outputs ###
-  ####################################
-  
-  ### Think about how we want to do this and automathize it
-  #write.csv(patient_event_history_update,"Model - simulation results/simulation_17dic_psa_base_case_predicted_2.csv")
-  
-  
-  #############################
-  ### Return model outcomes ###
-  #############################
+  ### Return model outcomes 
   
   return(list(mean_annual_fev1_decline       = mean_annual_fev1_decline,
               mean_life_expectancy           = mean_life_expectancy,
@@ -1468,60 +1444,30 @@ COPD_model_simulation <- function(patient_size_input,
               mean_total_costs_societal_disc = mean_total_costs_societal_disc,
               mean_total_costs_hc            = mean_total_costs_hc,
               mean_total_costs_hc_disc       = mean_total_costs_hc_disc))
-  
-  ### add cost components to return list
-  
-  
 } #end COPD_model_simulation function
 
+# To run the model simply call the model function with the appropriate inputs in the correct order. For example,
+# the line below will run the model for 500 patients, deterministically, without treatment effects and with a 
+# random seed equal to 177.
 
-
-#####################
-### Run the model ###
-#####################
-
-# 
-# ### Call the model function with the appropriate inputs in the correct order
-# # 1. Select whether the model will be based on "observed" (1) or "predicted" (0) regression equations
-# # 2. Select the number of patients in the simulation
-# 
-# 
-COPD_simulation_deterministic_results <- COPD_model_simulation(0, # 0 = predicted equations / 1 = observed equations
-                                                               500, # Patient size
+COPD_simulation_deterministic_results <- COPD_model_simulation(500, # Patient size
                                                                0, # 0 = deterministic run / 1 = probabilistic run
-                                                               1, # Treatment effect: factor on time to exacerbation (report 1.3)
-                                                               1, # Treatment effect: factor on probability of severe exacerbation (report NA)
-                                                               1, # Treatment effect: factor on fev1 change (report 0.8)
-                                                               1, # Treatment effect: factor on cwe score change (report 1.2)
-                                                               0, # Treatment effect: absolute change in SGRQ activity score (report -4)
-                                                               1, # Treatment effect: factor on probability of cough/sputum (report 0.8)
-                                                               1, # Treatment effect: factor on probability of shortness of breath (report 0.8)
-                                                               0, # Treatment effect: absolute change in SGRQ total score (report -4)
-                                                               "", # Subgroup
-                                                               177) # random seed input: for the report I used seed =177
+                                                               1, # Treatment effect: factor on time to exacerbation 
+                                                               1, # Treatment effect: factor on probability of severe exacerbation
+                                                               1, # Treatment effect: factor on fev1 change
+                                                               1, # Treatment effect: factor on cwe score change
+                                                               0, # Treatment effect: absolute change in SGRQ activity score
+                                                               1, # Treatment effect: factor on probability of cough/sputum 
+                                                               1, # Treatment effect: factor on probability of shortness of breath
+                                                               0, # Treatment effect: absolute change in SGRQ total score
+                                                               177) # random seed input
 
 
 COPD_simulation_deterministic_results
-# 
-# # For the PE paper
-# # Run all scenarios with 500 patients
-# # 1. base case
-# # 2. scenario tx effect tte factor 1.15, medication cost 1.50 and same seed (=177) for patients
-# # 3. scenario tx effect tte factor 1.15, medication cost 1.50 and different seed (=24) for patients
-# # 4. scenario tx effect tte factor 1.15, medication cost 1.50, same seed (=177) for patients and no seeds for events (including life expectancy)
-# # 5. base case not adjusting for remaining life expectancy
-# 
-# 
-# 
-# #write.csv(COPD_simulation_deterministic_results, "PE paper/simulation_scenario4_PE_paper.csv")
 
 
-
-#######################
-### PSA SIMULATION  ###
-#######################
-
-### This is basically calling the simulation function multiple times and getting the average results
+# To run a probabilistic sensitivity analysis (PSA) we can use the function below, which is basically calling 
+# the simulation function multiple times and getting the average results.
 
 COPD_model_PSA <- function(psa_size_input,
                            patient_size_input,
@@ -1557,10 +1503,8 @@ COPD_model_PSA <- function(psa_size_input,
   
   for(i in 1:psa_size_input){
     
-    print(i)
-    
     current_psa <- COPD_model_simulation(patient_size_input,
-                                         1, #note 1 here hardcoded
+                                         1, #note 1 here hardcoded because the main function will run in probabilistic mode
                                          exac_treatment_effect_tte_input,
                                          exac_treatment_effect_sevexa_input,
                                          fev1_treatment_effect_input,
@@ -1569,7 +1513,7 @@ COPD_model_PSA <- function(psa_size_input,
                                          coughsputum_treatment_effect_input,
                                          breathless_treatment_effect_input,
                                          sgtot_treatment_effect_input,
-                                         i)
+                                         i) # note i is the random seed, which will differ per PSA iteration
     
     psa_history[i,] <- c(current_psa$mean_annual_fev1_decline,
                          current_psa$mean_life_expectancy,
@@ -1594,73 +1538,4 @@ COPD_model_PSA <- function(psa_size_input,
   }
   
   return(list(psa_history=psa_history))
-  
-}
-
-
-
-### Change the settings below in order to run different PSA scenarios
-
-# PSA for base case tio
-# PSA for comparator tte 1.15 cost 1.50
-
-# PSA base case tio no random seed for PSA
-# PSA for comparator tte 1.15 cost 1.50 no random seed for PSA
-
-run_obs                      <- 0
-psa_size                     <- 300
-patient_size                 <- 50
-treatment_effect_tte         <- 1
-treatment_effect_sevexa      <- 1
-treatment_effect_fev1        <- 1
-cwe_treatment_effect         <- 1
-sgact_treatment_effect       <- 0
-coughsputum_treatment_effect <- 1
-breathless_treatment_effect  <- 1
-sgtot_treatment_effect       <- 0
-subgroup                     <- " "
-
-init_time <- proc.time()
-
-COPD_model_PSA_output <- COPD_model_PSA(psa_size,
-                                        run_obs,
-                                        patient_size,
-                                        treatment_effect_tte,
-                                        treatment_effect_sevexa,
-                                        treatment_effect_fev1,
-                                        cwe_treatment_effect,
-                                        sgact_treatment_effect,
-                                        coughsputum_treatment_effect,
-                                        breathless_treatment_effect,
-                                        sgtot_treatment_effect,
-                                        subgroup)
-
-PSA_summary_table <- data.frame(COPD_model_PSA_output$psa_history)
-
-colnames(PSA_summary_table) <- c("Annual FEV1 decline",
-                                 "Life expectancy",
-                                 "Moderate exacerbation rate",
-                                 "Severe exacerbation rate",
-                                 "Change in CWE score",
-                                 "Change in SGRQ act. score",
-                                 "Change in SGRQ total score",
-                                 "Cough/sputum rate",
-                                 "Cough/sputum time",
-                                 "Shortness of breath rate",
-                                 "Shortness of breath time",
-                                 "Pneumonia rate",
-                                 "Hospitalisation after pneu. rate",
-                                 "QALYs",
-                                 "QALYs (discounted)",
-                                 "Costs (societal)",
-                                 "Costs (societal discounted)",
-                                 "Costs (Health-care)",
-                                 "Costs (Health-care discounted)")
-
-PSA_summary_table <- rbind(PSA_summary_table,colMeans(PSA_summary_table))
-
-PSA_summary_table <- rbind(PSA_summary_table,lapply(PSA_summary_table[1:psa_size,], quantile, probs=c(0.025,0.975), name=FALSE))
-
-rownames(PSA_summary_table) <- c(1:psa_size,"Mean","2.5%", "97.5%")
-
-write.csv(PSA_summary_table, paste("PE paper/",Sys.Date(),"_",psa_size,"x",patient_size,"_base_case_no_seed_PE_paper",'.csv', sep=''))
+} # end PSA function
