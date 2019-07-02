@@ -306,47 +306,47 @@ COPD_model_simulation <- function(patient_size_input,
   ### Step 2: assign predictors
   
   fev1_predictors       <- c("ANLYEAR","female","AGE","BMIclass2","BMIclass3","SMOKER","SMPKY","other_CVD",
-                             "Reversibility","MH_DI","MH_DE","MH_CF","MH_RR","EMPHDIA","EOS_yn","ICS",
+                             "Reversibility","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","EOS_yn","ICS",
                              "FEVA_BL","modexac_yn","sevexac_yn")
   
   cwe_tot_predictors    <- c("female","BMIclass2","BMIclass3","SMOKER","SMPKY","other_CVD",
-                             "Reversibility","MH_DI","MH_DE","MH_CF","MH_RR","EMPHDIA","ICS", "EOS_yn",
+                             "Reversibility","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS", "EOS_yn",
                              "age_time","fevppa","lag_SGACT","lag_CWE_TOT","modexac_yn","sevexac_yn")
   
   breathless_predictors <- c("female","BMIclass2","BMIclass3","SMOKER","SMPKY_SCALED","other_CVD",
-                             "Reversibility_SCALED","MH_DI","MH_DE","MH_CF","MH_RR","EMPHDIA","ICS","EOS_yn",
+                             "Reversibility_SCALED","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS","EOS_yn",
                              "ANLYEAR_SCALED","AGE_SCALED","fevppa_SCALED","modexac_yn","sevexac_yn","SGACT_SCALED","CWE_TOT_SCALED","lag_breathlessyn") 
   
   coughsputum_predictors <- c("female","BMIclass2","BMIclass3","SMOKER","SMPKY_SCALED","other_CVD",
-                              "Reversibility_SCALED","MH_DI","MH_DE","MH_CF","MH_RR","EMPHDIA","ICS", "EOS_yn",
+                              "Reversibility_SCALED","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS", "EOS_yn",
                               "ANLYEAR_SCALED","AGE_SCALED","fevppa_SCALED","modexac_yn","sevexac_yn","SGACT_SCALED","CWE_TOT_SCALED","lag_coughsputumyn")
   
   SGACT_predictors       <- c("female","BMIclass2","BMIclass3","SMOKER","SMPKY","other_CVD",
-                              "Reversibility","MH_DI","MH_DE","MH_CF","MH_RR","EMPHDIA","ICS","EOS_yn",
+                              "Reversibility","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS","EOS_yn",
                               "ANLYEAR", "AGE","fevppa","lag_SGACT","CWE_TOT","lag_breathlessyn","lag_coughsputumyn","lag_SGTOT")
   
   SGTOT_predictors       <- c("female","BMIclass2","BMIclass3","SMOKER","SMPKY","other_CVD",
-                              "Reversibility","MH_DI","MH_DE","MH_CF","MH_RR","EMPHDIA","ICS","EOS_yn",
+                              "Reversibility","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS","EOS_yn",
                               "ANLYEAR", "AGE","fevppa","lag_SGTOT","modexac_yn","sevexac_yn","SGACT","CWE_TOT",
                               "breathlessyn","coughsputumyn","pneu_yn") #No adverse events at baseline so all =0
   
   mortality_predictors   <- c("female","AGE","BMIclass2","BMIclass3","SMOKER","SMPKY","other_CVD",
-                              "Reversibility","MH_DI","MH_DE","MH_CF","MH_RR","EMPHDIA","ICS","EOS_yn",
+                              "Reversibility","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS","EOS_yn",
                               "fevppa","prevsevexacyn","SGACT","CWE_TOT","breathlessyn","coughsputumyn","SGTOT")
   
   exacerbation_predictors <- c("female","BMIclass2","BMIclass3","SMOKER","SMPKY","other_CVD",
-                               "Reversibility","MH_DI","MH_DE","MH_CF","MH_RR","EMPHDIA","ICS","EOS_yn",
+                               "Reversibility","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS","EOS_yn",
                                "lag_fevppa","lag_SGACT","prevtotexacyn","prevsevexacyn","lag_SGTOT","age_time")
   
   exacerbation_severity_predictors <- c("female","BMIclass2","BMIclass3","SMOKER","SMPKY_SCALED","other_CVD",
-                                        "Reversibility_SCALED","MH_DI","MH_DE","MH_CF","MH_RR","EMPHDIA","ICS","EOS_yn",
+                                        "Reversibility_SCALED","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS","EOS_yn",
                                         "lag_fevppa_SCALED","lag_SGACT_SCALED","prevtotexacyn", "prevsevexacyn", "lag_SGTOT_SCALED","age_time_SCALED")
   
   pneumonia_predictors <- c("female","BMIclass2","BMIclass3","SMOKER","SMPKY","other_CVD",
-                            "Reversibility","MH_DI","MH_DE","MH_CF","MH_RR","EMPHDIA","ICS","EOS_yn","age_time")
+                            "Reversibility","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS","EOS_yn","age_time")
   
   pneumonia_hosp_predictors <- c("female", "BMIclass2","BMIclass3","SMOKER","SMPKY_SCALED","other_CVD",
-                                 "Reversibility_SCALED","MH_DI","MH_DE","MH_CF","MH_RR","EMPHDIA","ICS","EOS_yn","age_time_SCALED")
+                                 "Reversibility_SCALED","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS","EOS_yn","age_time_SCALED")
   
   ### Step 3: Read the data with the patient characteristics and select the complete cases
   baseline_characteristics_run <- read.csv(paste0(wd,c("/Model - datasets/baseline_characteristics_predicted_data.csv")),sep=",")
@@ -356,11 +356,11 @@ COPD_model_simulation <- function(patient_size_input,
   ###         as predictor when the model is run in "observed" data mode. 
   history_characteristics <- c("SIMID","PTID","ANLYEAR","age_time","FEVA","fevppa","sevexac_yn","modexac_yn","CWE_TOT","SGACT","SGTOT","coughsputumyn","breathlessyn","pneu_yn","pneu_hosp_yn","dead",
                                "female","AGE","BMIclass2","BMIclass3","SMOKER","SMPKY","other_CVD",
-                               "Reversibility", "MH_DI","MH_DE","MH_CF","MH_RR","EMPHDIA","EOS_yn","ICS","FEVA_BL","HTSTD",
+                               "Reversibility", "DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","EOS_yn","ICS","FEVA_BL","HTSTD",
                                "lag_SGACT","lag_CWE_TOT","lag_breathlessyn","lag_coughsputumyn","lag_SGTOT",
                                "SMPKY_SCALED","Reversibility_SCALED","ANLYEAR_SCALED","AGE_SCALED","fevppa_SCALED","SGACT_SCALED","CWE_TOT_SCALED")
   
-
+  
   ##################################################
   ########## MAIN PART I: simulate events ##########
   ##################################################
@@ -478,7 +478,7 @@ COPD_model_simulation <- function(patient_size_input,
     current_remaining_life_exp  <- baseline_remaining_life_exp
     lag_current_mortality       <- baseline_remaining_life_exp_mean 
     
-        
+    
     ###############################################################
     # STEP 3: Start the "timed" simulation (while loop = clock)   #
     ###############################################################
@@ -706,7 +706,7 @@ COPD_model_simulation <- function(patient_size_input,
   } #end for loop in number of patients
   
   
-      
+  
   #################################################################################
   ########## MAIN PART II: Update intermediate outcomes after every year ##########
   #################################################################################
@@ -747,10 +747,10 @@ COPD_model_simulation <- function(patient_size_input,
         current_patient_event_history_update[j,]$other_CVD            <- current_patient_event_history_update[j-1,]$other_CVD  
         current_patient_event_history_update[j,]$Reversibility        <- current_patient_event_history_update[j-1,]$Reversibility
         current_patient_event_history_update[j,]$Reversibility_SCALED <- current_patient_event_history_update[j-1,]$Reversibility_SCALED 
-        current_patient_event_history_update[j,]$MH_DI                <- current_patient_event_history_update[j-1,]$MH_DI
-        current_patient_event_history_update[j,]$MH_DE                <- current_patient_event_history_update[j-1,]$MH_DE
-        current_patient_event_history_update[j,]$MH_CF                <- current_patient_event_history_update[j-1,]$MH_CF
-        current_patient_event_history_update[j,]$MH_RR                <- current_patient_event_history_update[j-1,]$MH_RR
+        current_patient_event_history_update[j,]$DIABETES                <- current_patient_event_history_update[j-1,]$DIABETES
+        current_patient_event_history_update[j,]$DEPRESSION                <- current_patient_event_history_update[j-1,]$DEPRESSION
+        current_patient_event_history_update[j,]$HEART_FAILURE                <- current_patient_event_history_update[j-1,]$HEART_FAILURE
+        current_patient_event_history_update[j,]$ASTHMA                <- current_patient_event_history_update[j-1,]$ASTHMA
         current_patient_event_history_update[j,]$EMPHDIA              <- current_patient_event_history_update[j-1,]$EMPHDIA
         
         current_patient_event_history_update[j,]$EOS_yn               <- current_patient_event_history_update[j-1,]$EOS_yn
@@ -796,14 +796,14 @@ COPD_model_simulation <- function(patient_size_input,
         
         
         current_patient_event_history_update[j,]$SGTOT         <- min(100,max(0,predicted_SGTOT(SGTOT_regression_coef,current_patient_event_history_update[j,][SGTOT_predictors])$SGTOT))
-        }
+      }
       
     } #end for per patient
     
     patient_event_history_update <- rbind(patient_event_history_update,current_patient_event_history_update[,c(patient_characteristics_saved)])
     
   }
-    
+  
   #################################################################
   ########## MAIN PART III: Calculate aggregated results ##########
   #################################################################
@@ -1083,7 +1083,7 @@ COPD_model_simulation <- function(patient_size_input,
                sev_exa_work_days_lost_cost,
                sev_exa_distance_pcc_cost,
                sev_exa_distance_sc_cost
-              ), sev_exa_average_cost)
+           ), sev_exa_average_cost)
   }
   
   
@@ -1177,7 +1177,7 @@ COPD_model_simulation <- function(patient_size_input,
   
   # Predict GP visits
   gpvisits_stable_predictors <- c("female","BMIclass2","BMIclass3","SMOKER","SMPKY","other_CVD"
-                                  ,"MH_DI","MH_DE","MH_CF","MH_RR","EMPHDIA","ICS","EOS_yn")
+                                  ,"DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS","EOS_yn")
   
   gpvisits_predictors <- c(gpvisits_stable_predictors,"age_time","fevppa","SGACT","coughsputumyn","breathlessyn","SGTOT","modexac_yn","sevexac_yn")
   
@@ -1216,7 +1216,7 @@ COPD_model_simulation <- function(patient_size_input,
   num_gpvisits <- sapply(1:nrow(patient_event_history_update),predicted_gpvisits_calc) 
   
   predicted_specvisits_calc <-function(index){
-  exp(predicted_specvisits(specvisits_regression_coef$Estimate,patient_event_history_update_maintenance_costs[index,specvisits_predictors])$specvisits)
+    exp(predicted_specvisits(specvisits_regression_coef$Estimate,patient_event_history_update_maintenance_costs[index,specvisits_predictors])$specvisits)
   }
   
   num_specvisits <- sapply(1:nrow(patient_event_history_update),predicted_specvisits_calc)
