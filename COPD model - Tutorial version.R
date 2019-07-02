@@ -268,8 +268,6 @@ COPD_model_simulation <- function(patient_size_input,
                                   seed_input){
   
   
-  
-  
   ### Step 1: read regression coefficients
   
   lung_function_regression_coef         <- (read.csv(paste0(wd,c("/Model - regression coefficients/Lung function/lung_function_regression_coef_predicted_data2.csv")),sep=","))$Value
@@ -477,14 +475,11 @@ COPD_model_simulation <- function(patient_size_input,
     baseline_remaining_life_exp            <- rweibull(1,baseline_remaining_life_exp_parameters$shape_mortality_weibull,baseline_remaining_life_exp_parameters$scale_mortality_weibull)/365
     baseline_remaining_life_exp_mean       <- baseline_remaining_life_exp_parameters$scale_mortality_weibull*gamma(1+1/baseline_remaining_life_exp_parameters$shape_mortality_weibull)/365
     
-    #print(baseline_remaining_life_exp)
-    
     # Save the sampled life expectancy. This will be used as reference.
     current_remaining_life_exp  <- baseline_remaining_life_exp
     lag_current_mortality       <- baseline_remaining_life_exp_mean 
     
-    
-    
+        
     ###############################################################
     # STEP 3: Start the "timed" simulation (while loop = clock)   #
     ###############################################################
@@ -712,8 +707,7 @@ COPD_model_simulation <- function(patient_size_input,
   } #end for loop in number of patients
   
   # Output from PART I
-  # View(simulation_patients_history)
-  
+    
   #################################################################################
   ########## MAIN PART II: Update intermediate outcomes after every year ##########
   #################################################################################
@@ -783,7 +777,6 @@ COPD_model_simulation <- function(patient_size_input,
         current_patient_event_history_update[j,]$FEVA         <- max(0,predicted_fev1(lung_function_regression_coef,current_patient_event_history_update[j,][fev1_predictors],fev1_treatment_effect_input)$fev_1) 
         current_patient_event_history_update_fevppa_calc      <- fevppa_calc(current_patient_event_history_update[j,]$female,current_patient_event_history_update[j,]$HTSTD,current_patient_event_history_update[j,]$age_time,current_patient_event_history_update[j,]$FEVA)
         current_patient_event_history_update[j,]$fevppa       <- current_patient_event_history_update_fevppa_calc$fevppa
-        #current_patient_event_history_update[j,]$FEV1pred     <- current_patient_event_history_update_fevppa_calc$FEV1_pred
         current_patient_event_history_update[j,]$fevppa_SCALED <- (current_patient_event_history_update[j,]$fevppa - attr(scale(baseline_characteristics_run$fevppa),"scaled:center"))/attr(scale(baseline_characteristics_run$fevppa),"scaled:scale")
         
         current_patient_event_history_update[j,]$lag_SGACT    <- current_patient_event_history_update[j-1,]$SGACT 
@@ -806,19 +799,14 @@ COPD_model_simulation <- function(patient_size_input,
         
         
         current_patient_event_history_update[j,]$SGTOT         <- min(100,max(0,predicted_SGTOT(SGTOT_regression_coef,current_patient_event_history_update[j,][SGTOT_predictors])$SGTOT))
-        #current_patient_update$SGTOT_SCALED <- (current_patient_update$SGTOT - attr(scale(baseline_characteristics_run$SGTOT),"scaled:center"))/attr(scale(baseline_characteristics_run$SGTOT),"scaled:scale")
-        
-      }
+        }
       
     } #end for per patient
     
     patient_event_history_update <- rbind(patient_event_history_update,current_patient_event_history_update[,c(patient_characteristics_saved)])
     
   }
-  
-  # Output from PART II
-  # View(patient_event_history_update)
-  
+    
   #################################################################
   ########## MAIN PART III: Calculate aggregated results ##########
   #################################################################
