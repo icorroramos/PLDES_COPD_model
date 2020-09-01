@@ -227,86 +227,42 @@ COPD_model_simulation <- function(patient_size_input,
                                   sgtot_treatment_effect_input,
                                   seed_input){
   
-  
-  ### Step 1: read regression coefficients
-  
+  ### Step 1: read regression coefficients from csv files.
   lung_function_regression_coef         <- (read.csv(paste0(wd,c("/Model - regression coefficients/Lung function/lung_function_regression_coef_predicted_data2.csv")),sep=","))$Value
   lung_function_cov_matrix              <- read.csv(paste0(wd,c("/Model - regression coefficients/Lung function/lung_function_cov_matrix_predicted_data2.csv")),sep=";")
-  
   cwe_tot_regression_coef               <- (read.csv(paste0(wd,c("/Model - regression coefficients/Exercise capacity/cwe_tot_regression_coef_predicted_data_v3.csv")),sep=","))$Value
   cwe_tot_cov_matrix                    <- read.csv(paste0(wd,c("/Model - regression coefficients/Exercise capacity/cwe_tot_cov_matrix_predicted_data_v3.csv")),sep=";")
-  
   breathless_regression_coef            <- (read.csv(paste0(wd,c("/Model - regression coefficients/Symptoms/breathless_regression_coef_predicted_data_v2.csv")),sep=";"))$Estimate
   breathless_cov_matrix                 <- read.csv(paste0(wd,c("/Model - regression coefficients/Symptoms/breathless_cov_matrix_predicted_data_v2.csv")),sep=";")
-  
   coughsputum_regression_coef           <- (read.csv(paste0(wd,c("/Model - regression coefficients/Symptoms/coughsputum_regression_coef_predicted_data_v2.csv")),sep=";"))$Estimate
   coughsputum_cov_matrix                <- read.csv(paste0(wd,c("/Model - regression coefficients/Symptoms/coughsputum_cov_matrix_predicted_data_v2.csv")),sep=",")
-  
   SGACT_regression_coef                 <- (read.csv(paste0(wd,c("/Model - regression coefficients/Physical activity/SGACT_regression_coef_predicted_data_v2.csv")),sep=";"))$Value
   SGACT_cov_matrix                      <- read.csv(paste0(wd,c("/Model - regression coefficients/Physical activity/SGACT_cov_matrix_predicted_data_v2.csv")),sep=",")
-  
   SGTOT_regression_coef                 <- (read.csv(paste0(wd,c("/Model - regression coefficients/Quality of life/SGTOT_regression_coef_predicted_data_v2.csv")),sep=";"))$Value
   SGTOT_cov_matrix                      <- read.csv(paste0(wd,c("/Model - regression coefficients/Quality of life/SGTOT_cov_matrix_predicted_data_v2.csv")),sep=",")
-  
   mortality_weibull_regression_coef     <- (read.csv(paste0(wd,c("/Model - regression coefficients/Mortality/mortality_weibull_regression_coef_predicted_data.csv")),sep=";"))$Value
   mortality_weibull_cov_matrix          <- read.csv(paste0(wd,c("/Model - regression coefficients/Mortality/mortality_weibull_cov_matrix_predicted_data.csv")),sep=",")
-  
   exacerbation_weibull_regression_coef  <- (read.csv(paste0(wd,c("/Model - regression coefficients/Exacerbations/exacerbation_weibull_regression_coef_predicted_data.csv")),sep=";"))$Value
   exacerbation_weibull_cov_matrix       <- read.csv(paste0(wd,c("/Model - regression coefficients/Exacerbations/exacerbation_weibull_cov_matrix_predicted_data.csv")),sep=",")
-  
   exacerbation_severity_regression_coef <- (read.csv(paste0(wd,c("/Model - regression coefficients/Exacerbations/exacerbation_severity_regression_coef_predicted_data.csv")),sep=";"))$Estimate
   exacerbation_severity_cov_matrix      <- read.csv(paste0(wd,c("/Model - regression coefficients/Exacerbations/exacerbation_severity_cov_matrix_predicted_data.csv")),sep=",")
-  
   pneumonia_weibull_regression_coef     <- (read.csv(paste0(wd,c("/Model - regression coefficients/Pneumonia/pneu_weibull_regression_coef_predicted_data.csv")),sep=";"))$Value
   pneumonia_weibull_cov_matrix          <- read.csv(paste0(wd,c("/Model - regression coefficients/Pneumonia/pneu_weibull_cov_matrix_predicted_data.csv")),sep=",")
-  
   pneumonia_hosp_regression_coef        <- (read.csv(paste0(wd,c("/Model - regression coefficients/Pneumonia/pneu_hosp_regression_coef_predicted_data.csv")),sep=";"))$Estimate
   pneumonia_hosp_cov_matrix             <- read.csv(paste0(wd,c("/Model - regression coefficients/Pneumonia/pneu_hosp_cov_matrix_predicted_data.csv")),sep=",")
   
-  ### Step 2: assign predictors
-  
-  fev1_predictors       <- c("ANLYEAR","FEMALE","AGE","BMI_CLASS_2","BMI_CLASS_3","SMOKER","SMPKY","OTHER_CVD",
-                             "REVERSIBILITY","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","EOS_yn","ICS",
-                             "FEVA_BL","MODEXAC_yn","SEVEXAC_yn")
-  
-  cwe_tot_predictors    <- c("FEMALE","BMI_CLASS_2","BMI_CLASS_3","SMOKER","SMPKY","OTHER_CVD",
-                             "REVERSIBILITY","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS", "EOS_yn",
-                             "AGE_TIME","FEVPPA","lag_SGACT","lag_CWE_TOT","MODEXAC_yn","SEVEXAC_yn")
-  
-  breathless_predictors <- c("FEMALE","BMI_CLASS_2","BMI_CLASS_3","SMOKER","SMPKY_SCALED","OTHER_CVD",
-                             "REVERSIBILITY_SCALED","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS","EOS_yn",
-                             "ANLYEAR_SCALED","AGE_SCALED","FEVPPA_SCALED","MODEXAC_yn","SEVEXAC_yn","SGACT_SCALED","CWE_TOT_SCALED","lag_BREATHLESS_yn") 
-  
-  coughsputum_predictors <- c("FEMALE","BMI_CLASS_2","BMI_CLASS_3","SMOKER","SMPKY_SCALED","OTHER_CVD",
-                              "REVERSIBILITY_SCALED","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS", "EOS_yn",
-                              "ANLYEAR_SCALED","AGE_SCALED","FEVPPA_SCALED","MODEXAC_yn","SEVEXAC_yn","SGACT_SCALED","CWE_TOT_SCALED","lag_COUGHSPUTUM_yn")
-  
-  SGACT_predictors       <- c("FEMALE","BMI_CLASS_2","BMI_CLASS_3","SMOKER","SMPKY","OTHER_CVD",
-                              "REVERSIBILITY","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS","EOS_yn",
-                              "ANLYEAR", "AGE","FEVPPA","lag_SGACT","CWE_TOT","lag_BREATHLESS_yn","lag_COUGHSPUTUM_yn","lag_SGTOT")
-  
-  SGTOT_predictors       <- c("FEMALE","BMI_CLASS_2","BMI_CLASS_3","SMOKER","SMPKY","OTHER_CVD",
-                              "REVERSIBILITY","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS","EOS_yn",
-                              "ANLYEAR", "AGE","FEVPPA","lag_SGTOT","MODEXAC_yn","SEVEXAC_yn","SGACT","CWE_TOT",
-                              "BREATHLESS_yn","COUGHSPUTUM_yn","PNEU_yn") 
-  
-  mortality_predictors   <- c("FEMALE","AGE","BMI_CLASS_2","BMI_CLASS_3","SMOKER","SMPKY","OTHER_CVD",
-                              "REVERSIBILITY","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS","EOS_yn",
-                              "FEVPPA","PREV_SEVEXAC_yn","SGACT","CWE_TOT","BREATHLESS_yn","COUGHSPUTUM_yn","SGTOT")
-  
-  exacerbation_predictors <- c("FEMALE","BMI_CLASS_2","BMI_CLASS_3","SMOKER","SMPKY","OTHER_CVD",
-                               "REVERSIBILITY","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS","EOS_yn",
-                               "lag_FEVPPA","lag_SGACT","PREV_TOTEXAC_yn","PREV_SEVEXAC_yn","lag_SGTOT","AGE_TIME")
-  
-  exacerbation_severity_predictors <- c("FEMALE","BMI_CLASS_2","BMI_CLASS_3","SMOKER","SMPKY_SCALED","OTHER_CVD",
-                                        "REVERSIBILITY_SCALED","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS","EOS_yn",
-                                        "lag_FEVPPA_SCALED","lag_SGACT_SCALED","PREV_TOTEXAC_yn", "PREV_SEVEXAC_yn", "lag_SGTOT_SCALED","AGE_TIME_SCALED")
-  
-  pneumonia_predictors <- c("FEMALE","BMI_CLASS_2","BMI_CLASS_3","SMOKER","SMPKY","OTHER_CVD",
-                            "REVERSIBILITY","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS","EOS_yn","AGE_TIME")
-  
-  pneumonia_hosp_predictors <- c("FEMALE", "BMI_CLASS_2","BMI_CLASS_3","SMOKER","SMPKY_SCALED","OTHER_CVD",
-                                 "REVERSIBILITY_SCALED","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS","EOS_yn","AGE_TIME_SCALED")
+  ### Step 2: assign predictors (explanatory variables) for the regression equations used in the model (further details in the ViH or MDM papers - see README file)
+  fev1_predictors        <- c("ANLYEAR","FEMALE","AGE","BMI_CLASS_2","BMI_CLASS_3","SMOKER","SMPKY","OTHER_CVD", "REVERSIBILITY","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","EOS_yn","ICS","FEVA_BL","MODEXAC_yn","SEVEXAC_yn")
+  cwe_tot_predictors     <- c("FEMALE","BMI_CLASS_2","BMI_CLASS_3","SMOKER","SMPKY","OTHER_CVD","REVERSIBILITY","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS", "EOS_yn","AGE_TIME","FEVPPA","lag_SGACT","lag_CWE_TOT","MODEXAC_yn","SEVEXAC_yn")
+  breathless_predictors  <- c("FEMALE","BMI_CLASS_2","BMI_CLASS_3","SMOKER","SMPKY_SCALED","OTHER_CVD","REVERSIBILITY_SCALED","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS","EOS_yn","ANLYEAR_SCALED","AGE_SCALED","FEVPPA_SCALED","MODEXAC_yn","SEVEXAC_yn","SGACT_SCALED","CWE_TOT_SCALED","lag_BREATHLESS_yn") 
+  coughsputum_predictors <- c("FEMALE","BMI_CLASS_2","BMI_CLASS_3","SMOKER","SMPKY_SCALED","OTHER_CVD","REVERSIBILITY_SCALED","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS", "EOS_yn","ANLYEAR_SCALED","AGE_SCALED","FEVPPA_SCALED","MODEXAC_yn","SEVEXAC_yn","SGACT_SCALED","CWE_TOT_SCALED","lag_COUGHSPUTUM_yn")
+  SGACT_predictors       <- c("FEMALE","BMI_CLASS_2","BMI_CLASS_3","SMOKER","SMPKY","OTHER_CVD","REVERSIBILITY","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS","EOS_yn","ANLYEAR", "AGE","FEVPPA","lag_SGACT","CWE_TOT","lag_BREATHLESS_yn","lag_COUGHSPUTUM_yn","lag_SGTOT")
+  SGTOT_predictors       <- c("FEMALE","BMI_CLASS_2","BMI_CLASS_3","SMOKER","SMPKY","OTHER_CVD","REVERSIBILITY","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS","EOS_yn","ANLYEAR", "AGE","FEVPPA","lag_SGTOT","MODEXAC_yn","SEVEXAC_yn","SGACT","CWE_TOT","BREATHLESS_yn","COUGHSPUTUM_yn","PNEU_yn") 
+  mortality_predictors   <- c("FEMALE","AGE","BMI_CLASS_2","BMI_CLASS_3","SMOKER","SMPKY","OTHER_CVD","REVERSIBILITY","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS","EOS_yn","FEVPPA","PREV_SEVEXAC_yn","SGACT","CWE_TOT","BREATHLESS_yn","COUGHSPUTUM_yn","SGTOT")
+  exacerbation_predictors <- c("FEMALE","BMI_CLASS_2","BMI_CLASS_3","SMOKER","SMPKY","OTHER_CVD","REVERSIBILITY","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS","EOS_yn","lag_FEVPPA","lag_SGACT","PREV_TOTEXAC_yn","PREV_SEVEXAC_yn","lag_SGTOT","AGE_TIME")
+  exacerbation_severity_predictors <- c("FEMALE","BMI_CLASS_2","BMI_CLASS_3","SMOKER","SMPKY_SCALED","OTHER_CVD","REVERSIBILITY_SCALED","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS","EOS_yn","lag_FEVPPA_SCALED","lag_SGACT_SCALED","PREV_TOTEXAC_yn", "PREV_SEVEXAC_yn", "lag_SGTOT_SCALED","AGE_TIME_SCALED")
+  pneumonia_predictors <- c("FEMALE","BMI_CLASS_2","BMI_CLASS_3","SMOKER","SMPKY","OTHER_CVD","REVERSIBILITY","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS","EOS_yn","AGE_TIME")
+  pneumonia_hosp_predictors <- c("FEMALE", "BMI_CLASS_2","BMI_CLASS_3","SMOKER","SMPKY_SCALED","OTHER_CVD","REVERSIBILITY_SCALED","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS","EOS_yn","AGE_TIME_SCALED")
   
   ### Step 3: Read the data with the patient characteristics and select the complete cases
   baseline_characteristics_run <- read.csv(paste0(wd,c("/Model - datasets/baseline_characteristics_predicted_data.csv")),sep=",")
