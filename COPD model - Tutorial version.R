@@ -352,7 +352,7 @@ COPD_model_simulation <- function(patient_size_input,
     # These random seeds are used to draw the life expectancy. They ensure that patients in different arms have consistent time to death.
     # For example, if no treatment effect has been applied, time to death should be the same.
     # For the PSA, use a different seed for each patient in the loop: e.g. loop size is 500x100 so 100 is number of patients.
-    # This can be changed accordingly or just select a large enough value for the seed
+    # This can be changed accordingly or just select a large enough value for the seed.
     if(run_PSA_input == 0){set.seed(current_patient$SIMID)}else{set.seed((seed_input*100)+current_patient$SIMID)} 
     
     # Mortality at baseline: Weibull distribution
@@ -368,34 +368,37 @@ COPD_model_simulation <- function(patient_size_input,
     # Start the "timed" simulation (while loop = clock)   #
     #######################################################
     
+    # Initialize the index for events 
     current_event   <- 1
-    factor_for_seed <- 100 #test = 1 to reporduce results. I normally used 100 but can be anything large enough
     
+    # Set random seeds for each time to exacerbation and penumonia. They ensure that patients in different arms have consistent time to events.
+    # For example, if no treatment effect has been applied, time to event should be the same. 
+    # We used 100 but can be anything large enough (no patient will experience 100 events in the simulation)
+    factor_for_seed <- 100 
+    
+    # While loop starts for alive patients
     while(current_patient$dead==0){
       
-      ### These seeds will be used to draw the time to events while the patient is alive 
-      if(run_PSA_input == 0){
-        set.seed(factor_for_seed*current_patient$SIMID + current_event)
-      }else{
-        set.seed(factor_for_seed*seed_input*current_patient$SIMID + current_event)
-      }
+      # Set new random seeds to draw the time to events while the patient is alive 
+      if(run_PSA_input == 0){set.seed(factor_for_seed*current_patient$SIMID + current_event)}
+      else{set.seed(factor_for_seed*seed_input*current_patient$SIMID + current_event)}
       
-      #####################################################
-      # STEP 3.1: Sample exacerbation and pneumonia time  #
-      #####################################################
+      ###########################################
+      # Sample exacerbation and pneumonia time  #
+      ###########################################
       
       # Exacerbation is Weibull
       current_exacerbation_parameters <- predicted_exacerbation_weibull(exacerbation_weibull_regression_coef,current_patient[exacerbation_predictors])
       current_exacerbation_time       <- rweibull(1,current_exacerbation_parameters$shape_exacerbation_weibull,current_exacerbation_parameters$scale_exacerbation_weibull)
       current_exacerbation_time       <- exac_treatment_effect_tte_input*current_exacerbation_time
       
-      # pneumonia is Weibull
+      # Pneumonia is Weibull
       current_pneumonia_parameters <- predicted_pneumonia_weibull(pneumonia_weibull_regression_coef,current_patient[pneumonia_predictors])
       current_pneumonia_time       <- rweibull(1,current_pneumonia_parameters$shape_pneumonia_weibull,current_pneumonia_parameters$scale_pneumonia_weibull)
       
-      ##############################################
-      # STEP 3.2: Update patient characteristics   #
-      ##############################################
+      ####################################
+      # Update patient characteristics   #
+      ####################################
       
       # We first copy all the previous characteristics
       current_patient_update <- current_patient
