@@ -403,137 +403,101 @@ COPD_model_simulation <- function(patient_size_input,
       # We first copy all the previous characteristics
       current_patient_update <- current_patient
       
-      #######################################################
-      # STEP 3.2.1: Update first the lagged characteristics #
-      #######################################################
-      
+      # Update first the time lagged characteristics (these are needed for prediction of future events/intermediate characteristics)
       current_patient_update$lag_FEVPPA        <- current_patient$FEVPPA
       current_patient_update$lag_FEVPPA_SCALED <- (current_patient$FEVPPA - attr(scale(baseline_characteristics_run$FEVPPA),"scaled:center"))/attr(scale(baseline_characteristics_run$FEVPPA),"scaled:scale")
-      
       current_patient_update$lag_SGACT         <- current_patient$SGACT
       current_patient_update$lag_SGACT_SCALED  <- (current_patient$SGACT - attr(scale(baseline_characteristics_run$SGACT),"scaled:center"))/attr(scale(baseline_characteristics_run$SGACT),"scaled:scale")
-      
       current_patient_update$lag_CWE_TOT       <- current_patient$CWE_TOT
       current_patient_update$lag_BREATHLESS_yn  <- current_patient$BREATHLESS_yn
       current_patient_update$lag_COUGHSPUTUM_yn <- current_patient$COUGHSPUTUM_yn
-      
       current_patient_update$lag_SGTOT         <- current_patient$SGTOT
       current_patient_update$lag_SGTOT_SCALED  <- (current_patient$SGTOT - attr(scale(baseline_characteristics_run$SGTOT),"scaled:center"))/attr(scale(baseline_characteristics_run$SGTOT),"scaled:scale")
-      
       current_patient_update$PREV_SEVEXAC_yn <- current_patient$SEVEXAC_yn
       current_patient_update$PREV_TOTEXAC_yn <- ifelse(current_patient$SEVEXAC_yn==1 | current_patient$MODEXAC_yn==1,1,0)
-      
-      
-      #######################################################
-      # STEP 3.2.2: Update depending on the event occurred  #
-      #######################################################
-      
-      # If exacerbation happened, then update at exacerbation time
+            
+      # Next update depending on the event occurred: if an exacerbation happened, then update at exacerbation time the following characteristics
       if(min(current_remaining_life_exp,current_exacerbation_time,current_pneumonia_time)==current_exacerbation_time){
-        
         # Patient is still alive
         current_patient_update$dead <- 0
-        
-        # Update time-relatedcharacteristics
+        # Update time-dependent characteristics
         current_patient_update$ANLYEAR         <- current_patient$ANLYEAR  + current_exacerbation_time
-        current_patient_update$ANLYEAR_SCALED  <- (current_patient_update$ANLYEAR - 1.529411)/1.376549 # hardcoded based on dataset
+        current_patient_update$ANLYEAR_SCALED  <- (current_patient_update$ANLYEAR - 1.529411)/1.376549 # hard-coded based on dataset
         current_patient_update$lag_ANLYEAR     <- current_exacerbation_time
         current_patient_update$AGE_TIME        <- current_patient$AGE_TIME + current_exacerbation_time
         current_patient_update$AGE_TIME_SCALED <- (current_patient_update$AGE_TIME - attr(scale(baseline_characteristics_run$AGE_TIME),"scaled:center"))/attr(scale(baseline_characteristics_run$AGE_TIME),"scaled:scale")
-        
-        # If age + current life expectancy is > 100 years then we force death
+        # Assumption: if age + current life expectancy is > 100 years then we force death
         if(current_patient_update$AGE_TIME>100){current_patient_update$dead <- 1}
         
-        # Update exacerbation status. Decide first whether the exacerbation is moderate or severe.
-        
+        # Update exacerbation status. Decide first whether the exacerbation was moderate or severe.
+        # Calculate first the probability of the exacerbation being severe
         current_severity_prob   <- exac_treatment_effect_sevexaprob_input*predicted_exacerbation_severity(exacerbation_severity_regression_coef,current_patient_update[exacerbation_severity_predictors])$p.exacerbation_severity
+        # Then sample from a Bernoulli distirbution (severe = yes/no)
         current_severity_sample <- rbinom(1,1,current_severity_prob)
-        if(current_severity_sample==1){
+        # If the exacerbation was severe then update the following
+        if(current_severity_sample == 1){
           current_patient_update$MODEXAC_yn <- 0
           current_patient_update$SEVEXAC_yn <- 1
           
-          # Additional death risk because of severe exacerbation 
-          current_sevexa_death_prob   <- 0.063 ### hardcoded for now!
+          # Assumption: additional death risk because of severe exacerbation 
+          current_sevexa_death_prob   <- 0.063 # hard-coded based on data. See ViH paper (README file)
+          # Simulate whether patient dies from severe exacerbation
           current_sevexa_death_sample <- rbinom(1,1,current_sevexa_death_prob)
-          
-          if(current_sevexa_death_sample==1){
-            current_patient_update$dead <- 1
-          }else{
-            current_patient_update$dead <- 0
-          }
-          
-          
-        }else{
+          if(current_sevexa_death_sample == 1){current_patient_update$dead <- 1}else{current_patient_update$dead <- 0}
+        }        
+        else{ # If the exacerbation was moderate, just update status
           current_patient_update$MODEXAC_yn <- 1
           current_patient_update$SEVEXAC_yn <- 0
         }
-        
-        # Update pneumonia status 
+        # Update pneumonia status too 
         current_patient_update$PNEU_yn      <- 0
         current_patient_update$pneu_hosp_yn <- 0
-        
       }
-      
-      
-      # If pneumonia happened, then update at pneumonia time
+            
+      # If a pneumonia happened, then update at pneumonia time the following characteristics:
       if(min(current_remaining_life_exp,current_exacerbation_time,current_pneumonia_time)==current_pneumonia_time){
         
-        # Update time-relatedcharacteristics
+        # Update time-dependent characteristics
         current_patient_update$ANLYEAR         <- current_patient$ANLYEAR  + current_pneumonia_time
-        current_patient_update$ANLYEAR_SCALED  <- (current_patient_update$ANLYEAR - 1.529411)/1.376549 # hardcoded based on dataset
+        current_patient_update$ANLYEAR_SCALED  <- (current_patient_update$ANLYEAR - 1.529411)/1.376549 # hard-coded based on dataset
         current_patient_update$lag_ANLYEAR     <- current_pneumonia_time
         current_patient_update$AGE_TIME        <- current_patient$AGE_TIME + current_pneumonia_time
         current_patient_update$AGE_TIME_SCALED <- (current_patient_update$AGE_TIME - attr(scale(baseline_characteristics_run$AGE_TIME),"scaled:center"))/attr(scale(baseline_characteristics_run$AGE_TIME),"scaled:scale")
         
-        
         # Force death at 100 years
         if(current_patient_update$AGE_TIME>100){current_patient_update$dead <- 1}
         
-        # Update pneumonia status. 
+        # Update pneumonia status 
         current_patient_update$PNEU_yn      <- 1
         current_patient_update$pneu_hosp_yn <- rbinom(1,1,predicted_pneumonia_hosp(pneumonia_hosp_regression_coef,current_patient_update[pneumonia_hosp_predictors])$p.pneumonia.hosp)
         
         # Patient might die because of pneumonia after hospitalisation
         if(current_patient_update$pneu_hosp_yn==1){
-          
-          current_pneu_death_prob   <- 1607/19786 ### hardcoded based on dataset
+          current_pneu_death_prob   <- 1607/19786 ### hard-coded based on dataset
           current_pneu_death_sample <- rbinom(1,1,current_pneu_death_prob)
-          
-          if(current_pneu_death_sample==1){
-            current_patient_update$dead <- 1
-          }else{
-            current_patient_update$dead <- 0
-          }
+          if(current_pneu_death_sample==1){current_patient_update$dead <- 1}else{current_patient_update$dead <- 0}
         }
-        
       }
-      
-      
+            
       # If death  happened then update age and finish the simulation for this patient
       if(min(current_remaining_life_exp,current_exacerbation_time)==current_remaining_life_exp){
-        
         # Patient is dead
         current_patient_update$dead <- 1
-        
         # Update time-relatedcharacteristics
         current_patient_update$ANLYEAR          <- current_patient$ANLYEAR  + current_remaining_life_exp
         current_patient_update$ANLYEAR_SCALED   <- (current_patient_update$ANLYEAR - 1.529411)/1.376549 # hardcoded based on dataset
         current_patient_update$lag_ANLYEAR      <- current_remaining_life_exp
         current_patient_update$AGE_TIME         <- current_patient$AGE_TIME + current_remaining_life_exp
         current_patient_update$AGE_TIME_SCALED  <- (current_patient_update$AGE_TIME - attr(scale(baseline_characteristics_run$AGE_TIME),"scaled:center"))/attr(scale(baseline_characteristics_run$AGE_TIME),"scaled:scale")
-        
-        # Update exacerbation status. 
-        current_patient_update$MODEXAC_yn <- 0
-        current_patient_update$SEVEXAC_yn <- 0
-        
-        # Update pneumonia status. 
+        # Update exacerbation and pneumonia status
+        current_patient_update$MODEXAC_yn   <- 0
+        current_patient_update$SEVEXAC_yn   <- 0
         current_patient_update$PNEU_yn      <- 0
         current_patient_update$pneu_hosp_yn <- 0
       }
-      
-      
+            
       ############################################################################
-      # STEP 3.2.3: Update continuous variables depending on the event occurred  #
+      # Update continuous variables depending on the event occurred  #
       ############################################################################
       
       # Update FEV1, CWE, SGACT, symptoms and SGTOT. The order is important here:
