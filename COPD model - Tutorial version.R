@@ -944,30 +944,24 @@ COPD_model_simulation <- function(patient_size_input,
   specvisits_costs_patient_societal_discounted <- aggregate(patient_event_history_update$maintenance_specvisits_cost_societal_discounted,list(SIMID=patient_event_history_update$SIMID),sum)
     
   # Spirometries costs
-  patient_event_history_update$maintenance_spirometries_cost_hc            <- patient_event_history_update$diff_ANLYEAR*maintenance_costs[3,1]*maintenance_costs[3,2]
+  patient_event_history_update$maintenance_spirometries_cost_hc <- patient_event_history_update$diff_ANLYEAR*maintenance_costs[3,1]*maintenance_costs[3,2]
   patient_event_history_update$maintenance_spirometries_cost_hc_discounted <- patient_event_history_update$maintenance_spirometries_cost_hc/(1+discount_rate_costs)^patient_event_history_update$ANLYEAR 
-  
-  patient_event_history_update$maintenance_spirometries_cost_societal            <- patient_event_history_update$diff_ANLYEAR*maintenance_costs[3,1]*maintenance_costs[3,3]
+  patient_event_history_update$maintenance_spirometries_cost_societal <- patient_event_history_update$diff_ANLYEAR*maintenance_costs[3,1]*maintenance_costs[3,3]
   patient_event_history_update$maintenance_spirometries_cost_societal_discounted <- patient_event_history_update$maintenance_spirometries_cost_societal/(1+discount_rate_costs)^patient_event_history_update$ANLYEAR 
-  
-  
-  ### influenza vaccination costs
-  patient_event_history_update$maintenance_influenza_vaccination_cost_hc            <- patient_event_history_update$diff_ANLYEAR*maintenance_costs[4,1]*maintenance_costs[4,2]
+    
+  # Influenza vaccination costs
+  patient_event_history_update$maintenance_influenza_vaccination_cost_hc <- patient_event_history_update$diff_ANLYEAR*maintenance_costs[4,1]*maintenance_costs[4,2]
   patient_event_history_update$maintenance_influenza_vaccination_cost_hc_discounted <- patient_event_history_update$maintenance_influenza_vaccination_cost_hc/(1+discount_rate_costs)^patient_event_history_update$ANLYEAR  
-  
-  patient_event_history_update$maintenance_influenza_vaccination_cost_societal            <- patient_event_history_update$diff_ANLYEAR*maintenance_costs[4,1]*maintenance_costs[4,3]
+  patient_event_history_update$maintenance_influenza_vaccination_cost_societal <- patient_event_history_update$diff_ANLYEAR*maintenance_costs[4,1]*maintenance_costs[4,3]
   patient_event_history_update$maintenance_influenza_vaccination_cost_societal_discounted <- patient_event_history_update$maintenance_influenza_vaccination_cost_societal/(1+discount_rate_costs)^patient_event_history_update$ANLYEAR  
-  
-  
-  ### For ICS costs we need to check the value at baseline
-  patient_event_history_update$maintenance_ics_cost_hc            <- patient_event_history_update_maintenance_costs$ICS*patient_event_history_update$diff_ANLYEAR*maintenance_costs[5,1]*maintenance_costs[5,2]
+    
+  # For ICS costs we need to check the ICS status at baseline (ICS is a patient characteristic)
+  patient_event_history_update$maintenance_ics_cost_hc <- patient_event_history_update_maintenance_costs$ICS*patient_event_history_update$diff_ANLYEAR*maintenance_costs[5,1]*maintenance_costs[5,2]
   patient_event_history_update$maintenance_ics_cost_hc_discounted <- patient_event_history_update$maintenance_ics_cost_hc/(1+discount_rate_costs)^patient_event_history_update$ANLYEAR
-  
-  patient_event_history_update$maintenance_ics_cost_societal            <- patient_event_history_update_maintenance_costs$ICS*patient_event_history_update$diff_ANLYEAR*maintenance_costs[5,1]*maintenance_costs[5,3]
+  patient_event_history_update$maintenance_ics_cost_societal <- patient_event_history_update_maintenance_costs$ICS*patient_event_history_update$diff_ANLYEAR*maintenance_costs[5,1]*maintenance_costs[5,3]
   patient_event_history_update$maintenance_ics_cost_societal_discounted <- patient_event_history_update$maintenance_ics_cost_societal/(1+discount_rate_costs)^patient_event_history_update$ANLYEAR
   
-  
-  ### Travel costs depend on the number of visits calculated above
+  # Travel costs depend on the number of GP and specialist visits calculated above
   perspective <- "Societal"
   
   patient_event_history_update$maintenance_distance_pcc_cost_societal            <- if(perspective=="Societal"){2*maintenance_costs[6,1]*maintenance_costs[6,2]*patient_event_history_update$adjusted_num_gpvisits}else{rep(0,row(patient_event_history_update))}
