@@ -733,63 +733,47 @@ COPD_model_simulation <- function(patient_size_input,
   QALYs_patient_discounted <- aggregate(patient_event_history_update$QALYs_discounted,list(SIMID=patient_event_history_update$SIMID),sum)
   mean_qalys_disc <- round(mean(QALYs_patient_discounted$x),4)
     
-  ### Costs
+  # Costs are split into categories
   
-  # Treatment  costs: in France there's a distinction between HC and Soc.
-  # Scenario: mind the price when considering treatment effect scenarios.
-  # Be careful when implementing this in the interface!!!
-  treatment_price_year_hc       <- 1.12*1*365.25 #if(exac_treatment_effect_tte_input ==1 && fev1_treatment_effect_input==1){1.12*365.25}else{1.12*1.20*365.25} ### Hardcoded here
+  # Treatment costs: the model allows for a  distinction between health care and societal treatment costs, even though in the example below they are assumed to be the same.
+  treatment_price_year_hc <- 1.12*1*365.25 # Hard-coded here
   treatment_price_year_societal <- treatment_price_year_hc
-  
-  
-  patient_event_history_update$treatment_costs_hc            <- patient_event_history_update$diff_ANLYEAR*treatment_price_year_hc
-  discount_rate_costs <- ifelse(patient_event_history_update$ANLYEAR<=30,0.035,0.035) # UK = 0.035 always #Dynagito 0.04 0.02 #hardcoded
+  # Add treatment costs to simulation results: discounted and undiscounted, health care and societal perspectives 
+  patient_event_history_update$treatment_costs_hc <- patient_event_history_update$diff_ANLYEAR*treatment_price_year_hc
+  discount_rate_costs <- ifelse(patient_event_history_update$ANLYEAR<=30,0.035,0.035) # Discount rates hard-coded
   patient_event_history_update$treatment_costs_hc_discounted <- patient_event_history_update$treatment_costs_hc/(1+discount_rate_costs)^patient_event_history_update$ANLYEAR
-  
-  patient_event_history_update$treatment_costs_societal            <- patient_event_history_update$diff_ANLYEAR*treatment_price_year_societal
+  patient_event_history_update$treatment_costs_societal <- patient_event_history_update$diff_ANLYEAR*treatment_price_year_societal
   patient_event_history_update$treatment_costs_societal_discounted <- patient_event_history_update$treatment_costs_societal/(1+discount_rate_costs)^patient_event_history_update$ANLYEAR
   
   # Exacerbation costs 
   
-  # Read costs from Excel file depending on the selected options
-  
   # Retirement age
-  retirement_age <- 65 # UK = 65 #Dynagito 62 #hardcoded
+  retirement_age <- 65 # hard-coded
   
-  ### Societal persp. & health care use
-  exacerbation_costs_hc_use_row_names <- c("Primary care visits", "Secondary care visits", "Hospital days",
-                                           "Ambulance rides", "ER visits", "Course antibiotics","Course oral steroids",
-                                           "Work days lost", "Distance primary care clinic", "Distance specialist clinic")
-  
+  # Societal persp. & health care use: cost items
+  exacerbation_costs_hc_use_row_names <- c("Primary care visits", "Secondary care visits", "Hospital days", "Ambulance rides", "ER visits", "Course antibiotics","Course oral steroids","Work days lost", "Distance primary care clinic", "Distance specialist clinic")
+  # Read costs from Excel file depending on the selected options
   exacerbation_costs_hc_use <- read.csv("Model - datasets/Costs/exacerbation costs hc use.csv",sep=";",row.names = exacerbation_costs_hc_use_row_names)
   
   
-  # Societal persp. & average
+  # Societal persp. & average: when health care use is not available the model allows inputting just average costs
   exacerbation_costs_average_row_names <- c("Societal", "Societal (retired)", "Health care", "Health care (retired)")
-  
   exacerbation_costs_average <- read.csv("Model - datasets/Costs/exacerbation costs average.csv",sep=";",row.names = exacerbation_costs_average_row_names)
   
-  ### Dynagito scenario
-  #exacerbation_costs_average <- read.csv("Model - datasets/Costs/exacerbation costs average - FR.csv",sep=",",row.names = exacerbation_costs_average_row_names)
-  
+  #Assign the type of exacerbation costs read from the Excel
   mod_exa_costs_societal_average <- exacerbation_costs_average[1,1]   
   sev_exa_costs_societal_average <- exacerbation_costs_average[1,2]   
-  
   mod_exa_costs_societal_average_retired <- exacerbation_costs_average[2,1]   
   sev_exa_costs_societal_average_retired <- exacerbation_costs_average[2,2]   
   
-  ### Health care persp. & average
+  # Health care persp. & average
   mod_exa_costs_hc_average <- exacerbation_costs_average[3,1]   
   sev_exa_costs_hc_average <- exacerbation_costs_average[3,2]   
-  
   mod_exa_costs_hc_average_retired <- exacerbation_costs_average[4,1]   
   sev_exa_costs_hc_average_retired <- exacerbation_costs_average[4,2]   
-  
-  
-  ### Write functions to calculate cost per moderate and severe exacerbation
-  ### For the moment I include some items but this can change
-  mod_exa_cost <- function(age_input){
     
+  # The following functions calculate the cost per moderate and severe exacerbation depending on the cost types and perspective considered 
+  mod_exa_cost <- function(age_input){
     if(cost_type=="Health care use"){
       mod_exa_primary_care_cost   <- exacerbation_costs_hc_use[1,1]*exacerbation_costs_hc_use[1,3] 
       mod_exa_secondary_care_cost <- exacerbation_costs_hc_use[2,1]*exacerbation_costs_hc_use[2,3] 
@@ -801,36 +785,19 @@ COPD_model_simulation <- function(patient_size_input,
       mod_exa_work_days_lost_cost <- ifelse(perspective=="Societal" & age_input<=retirement_age, exacerbation_costs_hc_use[8,1]*exacerbation_costs_hc_use[8,3], 0) 
       mod_exa_distance_pcc_cost   <- ifelse(perspective=="Societal", 2*exacerbation_costs_hc_use[1,1]*exacerbation_costs_hc_use[9,1]*exacerbation_costs_hc_use[9,3], 0)
       mod_exa_distance_sc_cost    <- ifelse(perspective=="Societal", 2*exacerbation_costs_hc_use[2,1]*exacerbation_costs_hc_use[10,1]*exacerbation_costs_hc_use[10,3], 0)
-      
     }
-    
     if(cost_type=="Average"){
-      mod_exa_average_cost   <- ifelse(perspective=="Societal", 
+      mod_exa_average_cost   <- ifelse(perspective=="Societal",
                                        ifelse(age_input<=retirement_age,mod_exa_costs_societal_average,mod_exa_costs_societal_average_retired), 
                                        ifelse(age_input<=retirement_age,mod_exa_costs_hc_average,mod_exa_costs_hc_average_retired))
     }
     
-    #mod_exa_cost_total <- 
-    ifelse(cost_type=="Health care use",
-           sum(mod_exa_primary_care_cost,
-               mod_exa_secondary_care_cost,
-               mod_exa_hospital_days_cost,
-               mod_exa_ambulance_ride_cost,
-               mod_exa_ER_visit_cost,
-               mod_exa_antibiotics_cost,
-               mod_exa_steroids_cost,
-               mod_exa_work_days_lost_cost,
-               mod_exa_distance_pcc_cost,
-               mod_exa_distance_sc_cost),
-           mod_exa_average_cost)
-    
+    ifelse(cost_type=="Health care use",sum(mod_exa_primary_care_cost,mod_exa_secondary_care_cost,mod_exa_hospital_days_cost,mod_exa_ambulance_ride_cost,mod_exa_ER_visit_cost,
+                                            mod_exa_antibiotics_cost,mod_exa_steroids_cost,mod_exa_work_days_lost_cost,mod_exa_distance_pcc_cost,mod_exa_distance_sc_cost),mod_exa_average_cost)
   }
-  
-  
   
   # Severe exacerbations
   sev_exa_cost <- function(age_input){
-    
     if(cost_type=="Health care use"){
       sev_exa_primary_care_cost   <- exacerbation_costs_hc_use[1,2]*exacerbation_costs_hc_use[1,3] 
       sev_exa_secondary_care_cost <- exacerbation_costs_hc_use[2,2]*exacerbation_costs_hc_use[2,3] 
@@ -842,7 +809,6 @@ COPD_model_simulation <- function(patient_size_input,
       sev_exa_work_days_lost_cost <- ifelse(perspective=="Societal" & age_input<=retirement_age, exacerbation_costs_hc_use[8,2]*exacerbation_costs_hc_use[8,3], 0) 
       sev_exa_distance_pcc_cost   <- ifelse(perspective=="Societal", 2*exacerbation_costs_hc_use[1,2]*exacerbation_costs_hc_use[9,2]*exacerbation_costs_hc_use[9,3], 0)
       sev_exa_distance_sc_cost    <- ifelse(perspective=="Societal", 2*exacerbation_costs_hc_use[2,2]*exacerbation_costs_hc_use[10,2]*exacerbation_costs_hc_use[10,3], 0)
-      
     }
     
     if(cost_type=="Average"){
@@ -851,49 +817,27 @@ COPD_model_simulation <- function(patient_size_input,
                                        ifelse(age_input<=retirement_age,sev_exa_costs_hc_average,sev_exa_costs_hc_average_retired))
     }
     
-    #sev_exa_cost_total <- 
-    ifelse(cost_type=="Health care use", 
-           sum(sev_exa_primary_care_cost,
-               sev_exa_secondary_care_cost,
-               sev_exa_hospital_days_cost,
-               sev_exa_ambulance_ride_cost,
-               sev_exa_ER_visit_cost,
-               sev_exa_antibiotics_cost,
-               sev_exa_steroids_cost,
-               sev_exa_work_days_lost_cost,
-               sev_exa_distance_pcc_cost,
-               sev_exa_distance_sc_cost
-           ), sev_exa_average_cost)
+    ifelse(cost_type=="Health care use", sum(sev_exa_primary_care_cost,sev_exa_secondary_care_cost,sev_exa_hospital_days_cost,sev_exa_ambulance_ride_cost,sev_exa_ER_visit_cost,
+                                             sev_exa_antibiotics_cost,sev_exa_steroids_cost,sev_exa_work_days_lost_cost,sev_exa_distance_pcc_cost,sev_exa_distance_sc_cost), sev_exa_average_cost)
   }
-  
-  
-  
-  ### Now calculate the exacerbation costs associated to exacerbations in the simulation
-  ### This has to be age-dependent when the perspective is societal (productivity lossses)
-  
-  
-  ### And apply it to the model results
-  sev_exacerbation_costs_calc_sim <- function(index){
-    if(patient_event_history_update[index,"ANLYEAR"]>0){
-      sev_exa_cost(patient_event_history_update[index,"AGE_TIME"])*patient_event_history_update[index,"SEVEXAC_yn"]
-    }else{0}
     
+  # Now calculate the exacerbation costs associated to exacerbations in the simulation. This has to be age-dependent when the perspective is societal (productivity lossses).
+  # And apply it to the model results
+  sev_exacerbation_costs_calc_sim <- function(index){
+    if(patient_event_history_update[index,"ANLYEAR"]>0){sev_exa_cost(patient_event_history_update[index,"AGE_TIME"])*patient_event_history_update[index,"SEVEXAC_yn"]}
+    else{0}
   }
-  
   
   mod_exacerbation_costs_calc_sim <- function(index){
-    if(patient_event_history_update[index,"ANLYEAR"]>0){
-      mod_exa_cost(patient_event_history_update[index,"AGE_TIME"])*patient_event_history_update[index,"MODEXAC_yn"]
-    }else{0}
+    if(patient_event_history_update[index,"ANLYEAR"]>0){mod_exa_cost(patient_event_history_update[index,"AGE_TIME"])*patient_event_history_update[index,"MODEXAC_yn"]}
+    else{0}
   }
   
+  # Choose first perspective and type of cost data: these should be input parameters!!!
+  cost_type <- "Health care use" # Choose between "Health care use" or "Average" 
+  perspective <- "Societal" # Choose between "Societal" or "Health care"
   
-  ### Choose first perspective and type of cost data: these should be input parameters!!!
-  cost_type   <- "Health care use" #"Health care use" ### Choose between "Health care use" or "Average" # Dynagito uses Average
-  perspective <- "Societal" ### Choose between "Societal" or "Health care"
-  
-  
-  ### These are the simulated exacerbation costs
+  # These are the simulated exacerbation costs
   sev_exa_costs_societal            <- sapply(1:nrow(patient_event_history_update),sev_exacerbation_costs_calc_sim)
   sev_exa_costs_societal_discounted <- sev_exa_costs_societal/(1+discount_rate_costs)^patient_event_history_update$ANLYEAR
   mod_exa_costs_societal            <- sapply(1:nrow(patient_event_history_update),mod_exacerbation_costs_calc_sim)
