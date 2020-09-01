@@ -345,26 +345,28 @@ COPD_model_simulation <- function(patient_size_input,
     # Save the characteristics to be used in the simulation history (not those that are stable, only those changing) 
     simulation_patients_history <- rbind(simulation_patients_history,current_patient[history_characteristics])
         
-    #############################################
-    # STEP2: Sample from mortality distribution #
-    #############################################
+    ######################################
+    # Sample from mortality distribution #
+    ######################################
     
-    ### This seed will be used to draw the life expectancy
-    if(run_PSA_input == 0){set.seed(current_patient$SIMID)}else{set.seed((seed_input*100)+current_patient$SIMID)} # loop size is 500x100 so 100 is number of patients
+    # These random seeds are used to draw the life expectancy. They ensure that patients in different arms have consistent time to death.
+    # For example, if no treatment effect has been applied, time to death should be the same.
+    # For the PSA, use a different seed for each patient in the loop: e.g. loop size is 500x100 so 100 is number of patients.
+    # This can be changed accordingly or just select a large enough value for the seed
+    if(run_PSA_input == 0){set.seed(current_patient$SIMID)}else{set.seed((seed_input*100)+current_patient$SIMID)} 
     
-    # Mortality at baseline: Weibull
+    # Mortality at baseline: Weibull distribution
     baseline_remaining_life_exp_parameters <- predicted_mortality_weibull(mortality_weibull_regression_coef,current_patient[mortality_predictors])
     baseline_remaining_life_exp            <- rweibull(1,baseline_remaining_life_exp_parameters$shape_mortality_weibull,baseline_remaining_life_exp_parameters$scale_mortality_weibull)/365
     baseline_remaining_life_exp_mean       <- baseline_remaining_life_exp_parameters$scale_mortality_weibull*gamma(1+1/baseline_remaining_life_exp_parameters$shape_mortality_weibull)/365
     
-    # Save the sampled life expectancy. This will be used as reference.
+    # Save the sampled life expectancy. This will be used as reference for adjusting the remaining life expectancy after events (see MDM paper for details -- README file).
     current_remaining_life_exp  <- baseline_remaining_life_exp
     lag_current_mortality       <- baseline_remaining_life_exp_mean 
     
-    
-    ###############################################################
-    # STEP 3: Start the "timed" simulation (while loop = clock)   #
-    ###############################################################
+    #######################################################
+    # Start the "timed" simulation (while loop = clock)   #
+    #######################################################
     
     current_event   <- 1
     factor_for_seed <- 100 #test = 1 to reporduce results. I normally used 100 but can be anything large enough
