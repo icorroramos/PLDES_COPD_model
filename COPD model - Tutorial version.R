@@ -4,12 +4,6 @@
 
 # Original work Copyright (C) 2019 Isaac Corro Ramos
 
-# This is the R code of the tutorial version of the health economic simulation model for COPD published as: 
-# Broadening the Perspective of Cost-Effectiveness Modeling in Chronic Obstructive Pulmonary Disease: 
-# A New Patient-Level Simulation Model Suitable to Evaluate Stratified Medicine
-# Hoogendoorn, Martine et al. Value in Health, Volume 22, Issue 3, 313 - 321
-# https://doi.org/10.1016/j.jval.2018.10.008
-
 # Before the simulation code starts, make sure that all the packages below are installed in your computer.
 # Then load the packages.
 library(lattice)
