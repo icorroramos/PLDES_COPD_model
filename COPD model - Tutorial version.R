@@ -214,7 +214,6 @@ predicted_SGTOT <- function(regression_coefficents_SGTOT_input,
 
 # Other parameters 
 # 11. seed_input = A random seed is used to ensure consistency in the model results as explained in the MDM paper (see README file).
-
 COPD_model_simulation <- function(patient_size_input,
                                   run_PSA_input,
                                   exac_treatment_effect_tte_input,
@@ -552,7 +551,6 @@ COPD_model_simulation <- function(patient_size_input,
   
   # We were interested in updating the intermediate outcomes after every year because it is commonly done in COPD, e.g. annual decline in FEV1 is one of the most commonly used outcomes.
   # However, this may not be relevant for all models and, therefore, not needed. Removing this part from the model would make it simpler and faster since this part basically runs a loop on the previously simulated outcomes.
-  
   # The simulated patient characteristics of interest are the following:
   patient_characteristics_saved <- c("SIMID","PTID","ANLYEAR","AGE_TIME","FEVA","FEVPPA","SEVEXAC_yn","MODEXAC_yn","SGACT","SGTOT","COUGHSPUTUM_yn","BREATHLESS_yn","PNEU_yn","pneu_hosp_yn","dead")
   
@@ -635,14 +633,14 @@ COPD_model_simulation <- function(patient_size_input,
   ########## MAIN PART III: Calculate aggregated results ##########
   #################################################################
   
-  ### We first need to make additional columns for the "diff" variables
+  # We first made additional columns for the "diff" variables, which will calculate the difference between two consecutive outcomes (at time t minus at time t-1)
   patient_event_history_update$diff_ANLYEAR <- "NA"
   patient_event_history_update$diff_FEVA    <- "NA"
   patient_event_history_update$diff_SGTOT   <- "NA"
   patient_event_history_update$diff_SGACT   <- "NA"
   patient_event_history_update$diff_CWE_TOT <- "NA"
   
-  ### Calculate the "diff" variables to calculate the change in outcomes per year
+  # Calculate the "diff" variables to calculate the change in outcomes per year
   diff_ANLYEAR <- ddply(patient_event_history_update, "SIMID", summarize, diff_ANLYEAR = c(0,diff(ANLYEAR)))
   diff_FEVA    <- ddply(patient_event_history_update, "SIMID", summarize, diff_FEVA    = c(0,diff(FEVA)))
   diff_SGTOT   <- ddply(patient_event_history_update, "SIMID", summarize, diff_SGTOT   = c(0,diff(SGTOT)))
@@ -655,131 +653,86 @@ COPD_model_simulation <- function(patient_size_input,
   patient_event_history_update$diff_SGACT   <- diff_SGACT$diff_SGACT
   patient_event_history_update$diff_CWE_TOT <- diff_CWE_TOT$diff_CWE_TOT
   
-  ### Calculate model outcomes ###
+  # Calculate model outcomes
   
-  ### Adjust the number of exacerbations (no exacerbation when pneumonia happened)
+  # Adjust the number of exacerbations (no exacerbation is allowed when pneumonia happened): this is to correct for potential double-counting at baseline
   patient_event_history_update[which(patient_event_history_update$PNEU_yn==1),"MODEXAC_yn"] <- 0
   patient_event_history_update[which(patient_event_history_update$PNEU_yn==1),"SEVEXAC_yn"] <- 0
   
-  
-  ### Lung function: Mean FEV1 decline per year
+  # Lung function: Mean FEV1 decline per year
   mean_annual_fev1_decline <- round(mean(patient_event_history_update$diff_FEVA)/mean(patient_event_history_update$diff_ANLYEAR),4)
-  
-  ### Life expectancy
+  # Life expectancy
   mean_life_expectancy <- round(mean(patient_event_history_update[which(patient_event_history_update$dead==1),"ANLYEAR"]),4)
-  
-  # Moderate
-  modexac_year <-function(low_limit,upper_limit){
-    sum(patient_event_history_update[which(patient_event_history_update$ANLYEAR>low_limit & patient_event_history_update$ANLYEAR<=upper_limit),"MODEXAC_yn"])
-  }
+  # Moderate exacerbations
+  modexac_year <-function(low_limit,upper_limit){sum(patient_event_history_update[which(patient_event_history_update$ANLYEAR>low_limit & patient_event_history_update$ANLYEAR<=upper_limit),"MODEXAC_yn"])}
   mean_mod_exa_rate <- round(modexac_year(0,1000)/(patient_size_input*mean(patient_event_history_update[which(patient_event_history_update$dead==1),"ANLYEAR"])),4)
-  
-  # Severe 
-  sevexac_year <-function(low_limit,upper_limit){
-    sum(patient_event_history_update[which(patient_event_history_update$ANLYEAR>low_limit & patient_event_history_update$ANLYEAR<=upper_limit),"SEVEXAC_yn"])
-  }
+  # Severe exacerbations
+  sevexac_year <-function(low_limit,upper_limit){sum(patient_event_history_update[which(patient_event_history_update$ANLYEAR>low_limit & patient_event_history_update$ANLYEAR<=upper_limit),"SEVEXAC_yn"])}
   mean_sev_exa_rate <- round(sevexac_year(0,1000)/(patient_size_input*mean(patient_event_history_update[which(patient_event_history_update$dead==1),"ANLYEAR"])),4)
-  
-  
-  ### Exercise capacity
+  # Exercise capacity
   mean_CWE_TOT_change <- round(mean(patient_event_history_update$diff_CWE_TOT)/mean(patient_event_history_update$diff_ANLYEAR),4)
-  
-  ### SGRQ activity score 
+  # SGRQ activity score 
   mean_SGACT_change <- round(mean(patient_event_history_update$diff_SGACT)/mean(patient_event_history_update$diff_ANLYEAR),4)
-  
-  ### Cough/sputum
+  # Cough/sputum
   # Total number of cough/sputum per patient during lifetime
   cum_coughsputum <- aggregate(patient_event_history_update$COUGHSPUTUM_yn, list(Patient = patient_event_history_update$SIMID), sum)
   # Rate per year
   mean_cough_rate <- round(mean(cum_coughsputum$x)/mean(patient_event_history_update[which(patient_event_history_update$dead==1),"ANLYEAR"]),4)
-  
-  # July 2018 added
-  # create new time variable
+  # Create new time variable for symptoms
   diff_ANLYEAR_sym <- ddply(patient_event_history_update, "SIMID", summarize, diff_ANLYEAR_sym = c(diff(ANLYEAR),0))
-  
-  # create data frame just for symptoms
+  # Create new data frame for symptoms
   simulation_clinical_history_sym <- cbind(patient_event_history_update[,c("ANLYEAR", "COUGHSPUTUM_yn", "BREATHLESS_yn","dead")], diff_ANLYEAR_sym)
   simulation_dead                 <- simulation_clinical_history_sym[which(simulation_clinical_history_sym$dead == 1),c("SIMID", "ANLYEAR")]
   simulation_cough                <- simulation_clinical_history_sym[,c("SIMID", "diff_ANLYEAR_sym")]
   simulation_cough_time           <- simulation_clinical_history_sym$COUGHSPUTUM_yn * simulation_clinical_history_sym$diff_ANLYEAR_sym
   simulation_cough                <- cbind(simulation_cough, simulation_cough_time)
   mean_time_cough                 <- mean(aggregate(simulation_cough$simulation_cough_time, list(Patient = simulation_cough$SIMID), sum)$x/simulation_dead$ANLYEAR)
-  #ci_time_cough         <- quantile(aggregate(simulation_cough$simulation_cough_time, list(Patient = simulation_cough$SIMID), sum)$x/simulation_dead$ANLYEAR, c(0.025,0.975))
-  # End - July 2018 added
-  
-  ### Shortness of breath
+    
+  # Shortness of breath
   # Total number of cough/sputum per patient during lifetime
   cum_breathless <- aggregate(patient_event_history_update$BREATHLESS_yn, list(Patient = patient_event_history_update$SIMID), sum)
   # Rate per year
   mean_breathless_rate <- round(mean(cum_breathless$x)/mean(patient_event_history_update[which(patient_event_history_update$dead==1),"ANLYEAR"]),4)
-  
-  
-  # July 2018 added
   simulation_breath      <- simulation_clinical_history_sym[,c("SIMID", "diff_ANLYEAR_sym")]
   simulation_breath_time <- simulation_clinical_history_sym$BREATHLESS_yn * simulation_clinical_history_sym$diff_ANLYEAR_sym
   simulation_breath      <- cbind(simulation_breath, simulation_breath_time)
   mean_time_breath       <- mean(aggregate(simulation_breath$simulation_breath_time, list(Patient = simulation_breath$SIMID), sum)$x/simulation_dead$ANLYEAR)
-  # End - July 2018 added
-  
-  
-  
-  ### Adverse events (pneumonia)
+   
+  # Adverse events (pneumonia)
   # Total number of pneumonias per patient during lifetime
   cum_pneu <- aggregate(patient_event_history_update$PNEU_yn, list(Patient = patient_event_history_update$SIMID), sum)
   # Rate per year
   mean_pneu_rate <- round(mean(cum_pneu$x)/mean(patient_event_history_update[which(patient_event_history_update$dead==1),"ANLYEAR"]),4)
-  
   # Total number of pneumonias leading to hospitalisation per patient during lifetime
   cum_pneu_hosp <- aggregate(patient_event_history_update$pneu_hosp_yn, list(Patient = patient_event_history_update$SIMID), sum)
   # Rate per year
   mean_pneu_hosp_rate <- round(mean(cum_pneu_hosp$x)/mean(patient_event_history_update[which(patient_event_history_update$dead==1),"ANLYEAR"]),4)
   
-  
-  ### SGRQ total score 
+  # SGRQ total score 
   mean_SGTOT_change <- round(mean(patient_event_history_update$diff_SGTOT)/mean(patient_event_history_update$diff_ANLYEAR),4)
   
-  
-  ### QALYs
-  # Read baseline characteristics: we need gender to calculate utilities
-  ## In the average case it's not needed for the utilities but for the maintenace costs
+  # QALYs are gender dependent: gender needed to calculate utilities. Read this from the baseline characteristics file and add column with gender to the simulated results 
   baseline_characteristics <- read.csv("Model - datasets/baseline_characteristics_predicted_data.csv",sep=",")
-  
-  # Add column with gender to the simulated results file
-  ##AVERAGE
   patient_event_history_update <- merge(patient_event_history_update,baseline_characteristics[c("PTID","FEMALE")],by.x = "PTID",by.y = "PTID")
-  #patient_event_history_update$FEMALE <- (simulation_patients_history$FEMALE)[1]
-  
   # Order the dataset by "SIMID". This is very important because after merging the order is lost.
   patient_event_history_update <- patient_event_history_update[order(patient_event_history_update$SIMID,patient_event_history_update$ANLYEAR),]
   
-  
-  ### These are the simulated utilities: Changed with respect to the previous version: now it's vectorized and therefore faster.
+  # Simulate the utilities and add them to the results 
   utilities <- round(0.9617-0.0013*(patient_event_history_update$SGTOT)-0.0001*((patient_event_history_update$SGTOT)^2) + ifelse(patient_event_history_update$FEMALE==0,0.0231,0),4)
-  
-  
-  # Add them to the results dataset 
   patient_event_history_update$utilities <- utilities
-  
   # To calculate QALYS we multiply utilities by diff_ANLYEAR, then discount them
-  QALYs               <- patient_event_history_update$diff_ANLYEAR*patient_event_history_update$utilities
-  
+  QALYs <- patient_event_history_update$diff_ANLYEAR*patient_event_history_update$utilities
   discount_rate_QALYs <- ifelse(patient_event_history_update$ANLYEAR<=30,0.035,0.035) # UK = 0.035 always #Dynagito 0.04 0.02 #hardcoded
   QALYs_discounted    <- QALYs/(1+discount_rate_QALYs)^patient_event_history_update$ANLYEAR
-  
   # Add QALYs to the results table
   patient_event_history_update$QALYs <- QALYs
   patient_event_history_update$QALYs_discounted <- QALYs_discounted
-  
   # Finally, aggregate QALYS per patient and compute the average
   QALYs_patient <- aggregate(patient_event_history_update$QALYs,list(SIMID=patient_event_history_update$SIMID),sum)
   mean_qalys <- round(mean(QALYs_patient$x),4)
-  
-  # discounted QALYs
   QALYs_patient_discounted <- aggregate(patient_event_history_update$QALYs_discounted,list(SIMID=patient_event_history_update$SIMID),sum)
   mean_qalys_disc <- round(mean(QALYs_patient_discounted$x),4)
-  
-  
-  
+    
   ### Costs
   
   # Treatment  costs: in France there's a distinction between HC and Soc.
