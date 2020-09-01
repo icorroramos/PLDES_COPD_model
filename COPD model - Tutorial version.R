@@ -754,8 +754,7 @@ COPD_model_simulation <- function(patient_size_input,
   exacerbation_costs_hc_use_row_names <- c("Primary care visits", "Secondary care visits", "Hospital days", "Ambulance rides", "ER visits", "Course antibiotics","Course oral steroids","Work days lost", "Distance primary care clinic", "Distance specialist clinic")
   # Read costs from Excel file depending on the selected options
   exacerbation_costs_hc_use <- read.csv("Model - datasets/Costs/exacerbation costs hc use.csv",sep=";",row.names = exacerbation_costs_hc_use_row_names)
-  
-  
+    
   # Societal persp. & average: when health care use is not available the model allows inputting just average costs
   exacerbation_costs_average_row_names <- c("Societal", "Societal (retired)", "Health care", "Health care (retired)")
   exacerbation_costs_average <- read.csv("Model - datasets/Costs/exacerbation costs average.csv",sep=";",row.names = exacerbation_costs_average_row_names)
@@ -838,60 +837,45 @@ COPD_model_simulation <- function(patient_size_input,
   perspective <- "Societal" # Choose between "Societal" or "Health care"
   
   # These are the simulated exacerbation costs
-  sev_exa_costs_societal            <- sapply(1:nrow(patient_event_history_update),sev_exacerbation_costs_calc_sim)
+  sev_exa_costs_societal <- sapply(1:nrow(patient_event_history_update),sev_exacerbation_costs_calc_sim)
   sev_exa_costs_societal_discounted <- sev_exa_costs_societal/(1+discount_rate_costs)^patient_event_history_update$ANLYEAR
-  mod_exa_costs_societal            <- sapply(1:nrow(patient_event_history_update),mod_exacerbation_costs_calc_sim)
+  mod_exa_costs_societal <- sapply(1:nrow(patient_event_history_update),mod_exacerbation_costs_calc_sim)
   mod_exa_costs_societal_discounted <- mod_exa_costs_societal/(1+discount_rate_costs)^patient_event_history_update$ANLYEAR
-  
-  patient_event_history_update$sev_exa_costs_societal            <- sev_exa_costs_societal
+  patient_event_history_update$sev_exa_costs_societal <- sev_exa_costs_societal
   patient_event_history_update$sev_exa_costs_societal_discounted <- sev_exa_costs_societal_discounted
-  patient_event_history_update$mod_exa_costs_societal            <- mod_exa_costs_societal
+  patient_event_history_update$mod_exa_costs_societal <- mod_exa_costs_societal
   patient_event_history_update$mod_exa_costs_societal_discounted <- mod_exa_costs_societal_discounted
-  
-  patient_event_history_update$exacerbation_costs_societal            <- patient_event_history_update$sev_exa_costs_societal + patient_event_history_update$mod_exa_costs_societal
+  patient_event_history_update$exacerbation_costs_societal <- patient_event_history_update$sev_exa_costs_societal + patient_event_history_update$mod_exa_costs_societal
   patient_event_history_update$exacerbation_costs_societal_discounted <- patient_event_history_update$sev_exa_costs_societal_discounted + patient_event_history_update$mod_exa_costs_societal_discounted
-  
   # Exacerbation costs aggregated per patient and average 
   mod_exa_cost_societal_patient <- aggregate(patient_event_history_update$mod_exa_costs_societal,list(SIMID=patient_event_history_update$SIMID),sum)
   sev_exa_cost_societal_patient <- aggregate(patient_event_history_update$sev_exa_costs_societal,list(SIMID=patient_event_history_update$SIMID),sum)
-  
-  
-  ### Discounted
+  # Discounted
   mod_exa_cost_societal_patient_discounted <- aggregate(patient_event_history_update$mod_exa_costs_societal_discounted,list(SIMID=patient_event_history_update$SIMID),sum)
   sev_exa_cost_societal_patient_discounted <- aggregate(patient_event_history_update$sev_exa_costs_societal_discounted,list(SIMID=patient_event_history_update$SIMID),sum)
   
-  
-  ### Choose first perspective and type of cost data
-  perspective <- "Health care" ### Choose between "Societal" or "Health care"
-  
-  
-  ### These are the simulated exacerbation costs
-  sev_exa_costs_hc            <- sapply(1:nrow(patient_event_history_update),sev_exacerbation_costs_calc_sim)
+  # Change perspective 
+  perspective <- "Health care" 
+  # These are the simulated exacerbation costs
+  sev_exa_costs_hc <- sapply(1:nrow(patient_event_history_update),sev_exacerbation_costs_calc_sim)
   sev_exa_costs_hc_discounted <- sev_exa_costs_hc/(1+discount_rate_costs)^patient_event_history_update$ANLYEAR
-  mod_exa_costs_hc            <- sapply(1:nrow(patient_event_history_update),mod_exacerbation_costs_calc_sim)
+  mod_exa_costs_hc <- sapply(1:nrow(patient_event_history_update),mod_exacerbation_costs_calc_sim)
   mod_exa_costs_hc_discounted <- mod_exa_costs_hc/(1+discount_rate_costs)^patient_event_history_update$ANLYEAR
-  
-  patient_event_history_update$sev_exa_costs_hc            <- sev_exa_costs_hc
+  patient_event_history_update$sev_exa_costs_hc <- sev_exa_costs_hc
   patient_event_history_update$sev_exa_costs_hc_discounted <- sev_exa_costs_hc_discounted
-  patient_event_history_update$mod_exa_costs_hc            <- mod_exa_costs_hc
+  patient_event_history_update$mod_exa_costs_hc <- mod_exa_costs_hc
   patient_event_history_update$mod_exa_costs_hc_discounted <- mod_exa_costs_hc_discounted
-  
-  patient_event_history_update$exacerbation_costs_hc            <- patient_event_history_update$sev_exa_costs_hc + patient_event_history_update$mod_exa_costs_hc
+  patient_event_history_update$exacerbation_costs_hc <- patient_event_history_update$sev_exa_costs_hc + patient_event_history_update$mod_exa_costs_hc
   patient_event_history_update$exacerbation_costs_hc_discounted <- patient_event_history_update$sev_exa_costs_hc_discounted + patient_event_history_update$mod_exa_costs_hc_discounted
-  
-  ### Exacerbation costs aggregated per patient and average 
+  # Exacerbation costs aggregated per patient and average 
   mod_exa_cost_hc_patient <- aggregate(patient_event_history_update$mod_exa_costs_hc,list(SIMID=patient_event_history_update$SIMID),sum)
   sev_exa_cost_hc_patient <- aggregate(patient_event_history_update$sev_exa_costs_hc,list(SIMID=patient_event_history_update$SIMID),sum)
-  
   # Exacerbation costs discounted
   mod_exa_cost_hc_patient_discounted <- aggregate(patient_event_history_update$mod_exa_costs_hc_discounted,list(SIMID=patient_event_history_update$SIMID),sum)
   sev_exa_cost_hc_patient_discounted <- aggregate(patient_event_history_update$sev_exa_costs_hc_discounted,list(SIMID=patient_event_history_update$SIMID),sum)
   
-  
-  ## Maintenance costs 
-  
-  
-  ### GP and specialist visits
+  # Maintenance costs 
+  # GP and specialist visits
   
   ### Need to define predictive functions like in the simulation core of the model
   ### Then apply these functions per row of the simulation results file as above (after merging baseline patient characteristics)
