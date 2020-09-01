@@ -226,6 +226,9 @@ COPD_model_simulation <- function(patient_size_input,
                                   breathless_treatment_effect_input,
                                   sgtot_treatment_effect_input,
                                   seed_input){
+  #############
+  ### SETUP ###
+  #############
   
   ### Step 1: read regression coefficients from csv files.
   lung_function_regression_coef         <- (read.csv(paste0(wd,c("/Model - regression coefficients/Lung function/lung_function_regression_coef_predicted_data2.csv")),sep=","))$Value
@@ -264,18 +267,16 @@ COPD_model_simulation <- function(patient_size_input,
   pneumonia_predictors <- c("FEMALE","BMI_CLASS_2","BMI_CLASS_3","SMOKER","SMPKY","OTHER_CVD","REVERSIBILITY","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS","EOS_yn","AGE_TIME")
   pneumonia_hosp_predictors <- c("FEMALE", "BMI_CLASS_2","BMI_CLASS_3","SMOKER","SMPKY_SCALED","OTHER_CVD","REVERSIBILITY_SCALED","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS","EOS_yn","AGE_TIME_SCALED")
   
-  ### Step 3: Read the data with the patient characteristics and select the complete cases
+  ### Step 3: Read the data with the patient characteristics and select the complete cases (no missing values in patient characteristics are allowed)
   baseline_characteristics_run <- read.csv(paste0(wd,c("/Model - datasets/baseline_characteristics_predicted_data.csv")),sep=",")
   complete_cases <- baseline_characteristics_run[colnames(baseline_characteristics_run)][complete.cases(baseline_characteristics_run[colnames(baseline_characteristics_run)]),]
   
-  ### Step 4: indicate the patient characteristics that we will save during the simulation. Note CWE_TOT is not included 
-  ###         as predictor when the model is run in "observed" data mode. 
+  ### Step 4: indicate the patient characteristics that we will save during the simulation. 
   history_characteristics <- c("SIMID","PTID","ANLYEAR","AGE_TIME","FEVA","FEVPPA","SEVEXAC_yn","MODEXAC_yn","CWE_TOT","SGACT","SGTOT","COUGHSPUTUM_yn","BREATHLESS_yn","PNEU_yn","pneu_hosp_yn","dead",
                                "FEMALE","AGE","BMI_CLASS_2","BMI_CLASS_3","SMOKER","SMPKY","OTHER_CVD",
                                "REVERSIBILITY", "DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","EOS_yn","ICS","FEVA_BL","HTSTD",
                                "lag_SGACT","lag_CWE_TOT","lag_BREATHLESS_yn","lag_COUGHSPUTUM_yn","lag_SGTOT",
                                "SMPKY_SCALED","REVERSIBILITY_SCALED","ANLYEAR_SCALED","AGE_SCALED","FEVPPA_SCALED","SGACT_SCALED","CWE_TOT_SCALED")
-  
   
   ##################################################
   ########## MAIN PART I: simulate events ##########
