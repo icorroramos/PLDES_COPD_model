@@ -496,164 +496,139 @@ COPD_model_simulation <- function(patient_size_input,
         current_patient_update$pneu_hosp_yn <- 0
       }
             
-      ############################################################################
+      ################################################################
       # Update continuous variables depending on the event occurred  #
-      ############################################################################
+      ################################################################
       
-      # Update FEV1, CWE, SGACT, symptoms and SGTOT. The order is important here:
-      
-      # Update FEV1
+      # Update FEV1, CWE, SGACT, symptoms and SGTOT. The order is important here: see ViH for further details (README file)
+      # Update FEV1-related variables
       current_patient_update$FEVA          <- max(0,predicted_fev1(lung_function_regression_coef,current_patient_update[fev1_predictors],fev1_treatment_effect_input)$fev_1) 
       current_FEVPPA_calc                  <- FEVPPA_calc(current_patient_update$FEMALE,current_patient_update$HTSTD,current_patient_update$AGE_TIME,current_patient_update$FEVA)
       current_patient_update$FEVPPA        <- current_FEVPPA_calc$FEVPPA
       current_patient_update$FEV1pred      <- current_FEVPPA_calc$FEV1_pred
       current_patient_update$FEVPPA_SCALED <- (current_patient_update$FEVPPA - attr(scale(baseline_characteristics_run$FEVPPA),"scaled:center"))/attr(scale(baseline_characteristics_run$FEVPPA),"scaled:scale")
-      
       # Force death if FEV1 < 0.2
       if(current_patient_update$FEVA < 0.2){current_patient_update$dead <- 1}
       
-      
-      # Update CWE (min observed is 42. here for now we truncate at 0)
+      # Update CWE (the minimum value observed in the dataset was 42. In the code we truncate at 0)
       current_patient_update$CWE_TOT        <- cwe_treatment_effect_input*max(0,predicted_cwe_tot(cwe_tot_regression_coef,current_patient_update[cwe_tot_predictors])$cwe_tot) #max(0,predicted_cwe_tot(cwe_tot_regression_coef$Value,current_patient_update[cwe_tot_predictors])$cwe_tot)
       current_patient_update$CWE_TOT_SCALED <- (current_patient_update$CWE_TOT - attr(scale(baseline_characteristics_run$CWE_TOT),"scaled:center"))/attr(scale(baseline_characteristics_run$CWE_TOT),"scaled:scale")
       
-      # Update SGACT
+      # Update SGACT: range of values [0, 100]
       current_patient_update$SGACT        <- min(100,max(0,sgact_treatment_effect_input+predicted_SGACT(SGACT_regression_coef,current_patient_update[SGACT_predictors])$SGACT))
       current_patient_update$SGACT_SCALED <- (current_patient_update$SGACT - attr(scale(baseline_characteristics_run$SGACT),"scaled:center"))/attr(scale(baseline_characteristics_run$SGACT),"scaled:scale")
       
-      # Update breathlesness and coughsputum
+      # Update breathlesness and coughsputum status (sample from Bernoulli distributions)
       current_patient_update$BREATHLESS_yn  <- rbinom(1,1,breathless_treatment_effect_input*predicted_breathless(breathless_regression_coef,current_patient_update[breathless_predictors])$p.breathless)
       current_patient_update$COUGHSPUTUM_yn <- rbinom(1,1,coughsputum_treatment_effect_input*predicted_coughsputum(coughsputum_regression_coef,current_patient_update[coughsputum_predictors])$p.coughsputum)
       
-      # Update SGTOT
+      # Update SGTOT: range of values [0, 100]
       current_patient_update$SGTOT        <- min(100,max(0,sgtot_treatment_effect_input+predicted_SGTOT(SGTOT_regression_coef,current_patient_update[SGTOT_predictors])$SGTOT))
       current_patient_update$SGTOT_SCALED <- (current_patient_update$SGTOT - attr(scale(baseline_characteristics_run$SGTOT),"scaled:center"))/attr(scale(baseline_characteristics_run$SGTOT),"scaled:scale")
       
-      ### When all characteristics have been updated, we add these to the patient history
+      # When all characteristics have been updated, we add these to the patient history maxtrix
       simulation_patients_history <- rbind(simulation_patients_history,current_patient_update[history_characteristics])
       
-      ### And update current patient and go up to while loop
+      # And update the current patient which will "go up" in the while loop again
       current_patient <- current_patient_update
-      
-      
-      ######################################################################
-      # STEP 3.2.4: Adjust Mortality according to updated characteristics  #
-      ######################################################################
-      
-      ### Fixed to Weibull
+            
+      # Adjust remaining life expectancy according to updated patient characteristics. See MDM paper for details.
       current_mortality_parameters <- predicted_mortality_weibull(mortality_weibull_regression_coef,current_patient[mortality_predictors])
       current_mortality            <- current_mortality_parameters$scale_mortality_weibull*gamma(1+1/current_mortality_parameters$shape_mortality_weibull)/365
-      
-      ### Adjust remaining life expectancy according to improvement or worsened in condition wrt baseline or previous period
+      ### Adjust remaining life expectancy according to improvement or worsened in condition with respect to baseline or previous time period
       current_remaining_life_exp <- max(0,(current_remaining_life_exp - current_patient$lag_ANLYEAR)*(current_mortality/lag_current_mortality))
       
-      ### Update mortality factor and event index
+      # Update mortality curve and event index
       lag_current_mortality    <- current_mortality 
       current_event            <- current_event + 1
-      
-    } #end while loop and move to another patient
-    
+    } #end while loop 
+    # Move to another patient
     patient_index <- patient_index + 1
-    
   } #end for loop in number of patients
-  
-  
   
   #################################################################################
   ########## MAIN PART II: Update intermediate outcomes after every year ##########
   #################################################################################
   
-  patient_characteristics_saved <- c("SIMID","PTID","ANLYEAR","AGE_TIME","FEVA","FEVPPA","SEVEXAC_yn","MODEXAC_yn",
-                                     "SGACT","SGTOT","COUGHSPUTUM_yn","BREATHLESS_yn","PNEU_yn","pneu_hosp_yn","dead")
+  # We were interested in updating the intermediate outcomes after every year because it is commonly done in COPD, e.g. annual decline in FEV1 is one of the most commonly used outcomes.
+  # However, this may not be relevant for all models and, therefore, not needed. Removing this part from the model would make it simpler and faster since this part basically runs a loop on the previously simulated outcomes.
   
+  # The simulated patient characteristics of interest are the following:
+  patient_characteristics_saved <- c("SIMID","PTID","ANLYEAR","AGE_TIME","FEVA","FEVPPA","SEVEXAC_yn","MODEXAC_yn","SGACT","SGTOT","COUGHSPUTUM_yn","BREATHLESS_yn","PNEU_yn","pneu_hosp_yn","dead")
+  
+  # These characteristics are saved in a currently empty matrix
   patient_event_history_update <- simulation_patients_history[FALSE,c(patient_characteristics_saved)]
   
-  
+  # The above defined empt matrix will be filled-in in the loop below.
   for(i in 1:max(simulation_patients_history$SIMID)){
     
+    # Loop counter for the PSA progress (you may delete this if not interested)
     if(run_PSA_input == 0){print(i+patient_size_input)}
     
+    # Slect the first simulated patient and calculate how many years passed between simulated events
     current_patient_event_history <- simulation_patients_history[which(simulation_patients_history$SIMID == i),]
     where    <- tail(1:nrow(current_patient_event_history),-1) 
-    how_many <- floor(diff(current_patient_event_history$ANLYEAR))### Not correct either: this works when the time to event is larger than 1 year! So floor has to be larger than 0
+    how_many <- floor(diff(current_patient_event_history$ANLYEAR))
     
+    # Then add to the history matrix one row for each year that passed between events
     current_patient_event_history_update <- data.frame(matrix(,ncol=ncol(current_patient_event_history),nrow=max(where)+sum(how_many)))
     colnames(current_patient_event_history_update) <- c(history_characteristics)
-    
     current_patient_event_history_update[c(1,cumsum(how_many)+where),] <- current_patient_event_history[1:nrow(current_patient_event_history),]
     current_patient_event_history_update$SIMID <- current_patient_event_history$SIMID[1]
     current_patient_event_history_update$PTID  <- current_patient_event_history$PTID[1]
     
+    # Then, for each year between events, re-calculate all the intemediate outcomes
     for(j in 2:(nrow(current_patient_event_history_update)-1)){
       
       if(is.na(current_patient_event_history_update[j,]$ANLYEAR)==TRUE){
-        
-        current_patient_event_history_update[j,]$FEMALE               <- current_patient_event_history_update[j-1,]$FEMALE
-        current_patient_event_history_update[j,]$AGE                  <- current_patient_event_history_update[j-1,]$AGE
-        current_patient_event_history_update[j,]$AGE_SCALED           <- current_patient_event_history_update[j-1,]$AGE_SCALED
-        current_patient_event_history_update[j,]$BMI_CLASS_2            <- current_patient_event_history_update[j-1,]$BMI_CLASS_2  
-        current_patient_event_history_update[j,]$BMI_CLASS_3            <- current_patient_event_history_update[j-1,]$BMI_CLASS_3
-        current_patient_event_history_update[j,]$SMOKER               <- current_patient_event_history_update[j-1,]$SMOKER
-        current_patient_event_history_update[j,]$SMPKY                <- current_patient_event_history_update[j-1,]$SMPKY
-        current_patient_event_history_update[j,]$SMPKY_SCALED         <- current_patient_event_history_update[j-1,]$SMPKY_SCALED
-        current_patient_event_history_update[j,]$OTHER_CVD            <- current_patient_event_history_update[j-1,]$OTHER_CVD  
-        current_patient_event_history_update[j,]$REVERSIBILITY        <- current_patient_event_history_update[j-1,]$REVERSIBILITY
+        current_patient_event_history_update[j,]$FEMALE <- current_patient_event_history_update[j-1,]$FEMALE
+        current_patient_event_history_update[j,]$AGE <- current_patient_event_history_update[j-1,]$AGE
+        current_patient_event_history_update[j,]$AGE_SCALED <- current_patient_event_history_update[j-1,]$AGE_SCALED
+        current_patient_event_history_update[j,]$BMI_CLASS_2 <- current_patient_event_history_update[j-1,]$BMI_CLASS_2  
+        current_patient_event_history_update[j,]$BMI_CLASS_3 <- current_patient_event_history_update[j-1,]$BMI_CLASS_3
+        current_patient_event_history_update[j,]$SMOKER <- current_patient_event_history_update[j-1,]$SMOKER
+        current_patient_event_history_update[j,]$SMPKY <- current_patient_event_history_update[j-1,]$SMPKY
+        current_patient_event_history_update[j,]$SMPKY_SCALED <- current_patient_event_history_update[j-1,]$SMPKY_SCALED
+        current_patient_event_history_update[j,]$OTHER_CVD <- current_patient_event_history_update[j-1,]$OTHER_CVD  
+        current_patient_event_history_update[j,]$REVERSIBILITY <- current_patient_event_history_update[j-1,]$REVERSIBILITY
         current_patient_event_history_update[j,]$REVERSIBILITY_SCALED <- current_patient_event_history_update[j-1,]$REVERSIBILITY_SCALED 
-        current_patient_event_history_update[j,]$DIABETES                <- current_patient_event_history_update[j-1,]$DIABETES
-        current_patient_event_history_update[j,]$DEPRESSION                <- current_patient_event_history_update[j-1,]$DEPRESSION
-        current_patient_event_history_update[j,]$HEART_FAILURE                <- current_patient_event_history_update[j-1,]$HEART_FAILURE
-        current_patient_event_history_update[j,]$ASTHMA                <- current_patient_event_history_update[j-1,]$ASTHMA
-        current_patient_event_history_update[j,]$EMPHDIA              <- current_patient_event_history_update[j-1,]$EMPHDIA
-        
-        current_patient_event_history_update[j,]$EOS_yn               <- current_patient_event_history_update[j-1,]$EOS_yn
-        
-        current_patient_event_history_update[j,]$ICS                  <- current_patient_event_history_update[j-1,]$ICS
-        current_patient_event_history_update[j,]$FEVA_BL              <- current_patient_event_history_update[j-1,]$FEVA_BL
-        current_patient_event_history_update[j,]$HTSTD                <- current_patient_event_history_update[j-1,]$HTSTD
-        
-        
-        current_patient_event_history_update[j,]$ANLYEAR         <- current_patient_event_history_update[j-1,]$ANLYEAR + 1 
-        current_patient_event_history_update[j,]$ANLYEAR_SCALED  <- (current_patient_event_history_update[j,]$ANLYEAR - 1.529411)/1.376549
-        
-        current_patient_event_history_update[j,]$AGE_TIME     <- current_patient_event_history_update[j-1,]$AGE_TIME + 1 
-        current_patient_event_history_update[j,]$SEVEXAC_yn   <- 0
-        current_patient_event_history_update[j,]$MODEXAC_yn   <- 0
-        current_patient_event_history_update[j,]$PNEU_yn      <- 0
+        current_patient_event_history_update[j,]$DIABETES <- current_patient_event_history_update[j-1,]$DIABETES
+        current_patient_event_history_update[j,]$DEPRESSION <- current_patient_event_history_update[j-1,]$DEPRESSION
+        current_patient_event_history_update[j,]$HEART_FAILURE <- current_patient_event_history_update[j-1,]$HEART_FAILURE
+        current_patient_event_history_update[j,]$ASTHMA <- current_patient_event_history_update[j-1,]$ASTHMA
+        current_patient_event_history_update[j,]$EMPHDIA <- current_patient_event_history_update[j-1,]$EMPHDIA
+        current_patient_event_history_update[j,]$EOS_yn <- current_patient_event_history_update[j-1,]$EOS_yn
+        current_patient_event_history_update[j,]$ICS <- current_patient_event_history_update[j-1,]$ICS
+        current_patient_event_history_update[j,]$FEVA_BL <- current_patient_event_history_update[j-1,]$FEVA_BL
+        current_patient_event_history_update[j,]$HTSTD <- current_patient_event_history_update[j-1,]$HTSTD
+        current_patient_event_history_update[j,]$ANLYEAR <- current_patient_event_history_update[j-1,]$ANLYEAR + 1 
+        current_patient_event_history_update[j,]$ANLYEAR_SCALED <- (current_patient_event_history_update[j,]$ANLYEAR - 1.529411)/1.376549
+        current_patient_event_history_update[j,]$AGE_TIME <- current_patient_event_history_update[j-1,]$AGE_TIME + 1 
+        current_patient_event_history_update[j,]$SEVEXAC_yn <- 0
+        current_patient_event_history_update[j,]$MODEXAC_yn <- 0
+        current_patient_event_history_update[j,]$PNEU_yn <- 0
         current_patient_event_history_update[j,]$pneu_hosp_yn <- 0
-        current_patient_event_history_update[j,]$dead         <- 0
-        
-        
-        current_patient_event_history_update[j,]$FEVA         <- max(0,predicted_fev1(lung_function_regression_coef,current_patient_event_history_update[j,][fev1_predictors],fev1_treatment_effect_input)$fev_1) 
-        current_patient_event_history_update_FEVPPA_calc      <- FEVPPA_calc(current_patient_event_history_update[j,]$FEMALE,current_patient_event_history_update[j,]$HTSTD,current_patient_event_history_update[j,]$AGE_TIME,current_patient_event_history_update[j,]$FEVA)
-        current_patient_event_history_update[j,]$FEVPPA       <- current_patient_event_history_update_FEVPPA_calc$FEVPPA
+        current_patient_event_history_update[j,]$dead <- 0
+        current_patient_event_history_update[j,]$FEVA <- max(0,predicted_fev1(lung_function_regression_coef,current_patient_event_history_update[j,][fev1_predictors],fev1_treatment_effect_input)$fev_1) 
+        current_patient_event_history_update_FEVPPA_calc <- FEVPPA_calc(current_patient_event_history_update[j,]$FEMALE,current_patient_event_history_update[j,]$HTSTD,current_patient_event_history_update[j,]$AGE_TIME,current_patient_event_history_update[j,]$FEVA)
+        current_patient_event_history_update[j,]$FEVPPA <- current_patient_event_history_update_FEVPPA_calc$FEVPPA
         current_patient_event_history_update[j,]$FEVPPA_SCALED <- (current_patient_event_history_update[j,]$FEVPPA - attr(scale(baseline_characteristics_run$FEVPPA),"scaled:center"))/attr(scale(baseline_characteristics_run$FEVPPA),"scaled:scale")
-        
-        current_patient_event_history_update[j,]$lag_SGACT    <- current_patient_event_history_update[j-1,]$SGACT 
-        
-        current_patient_event_history_update[j,]$lag_CWE_TOT    <- current_patient_event_history_update[j-1,]$CWE_TOT
-        current_patient_event_history_update[j,]$CWE_TOT        <- max(0,predicted_cwe_tot(cwe_tot_regression_coef,current_patient_event_history_update[j,][cwe_tot_predictors])$cwe_tot) #max(0,predicted_cwe_tot(cwe_tot_regression_coef$Value,current_patient_event_history_update[j,][cwe_tot_predictors])$cwe_tot)    
+        current_patient_event_history_update[j,]$lag_SGACT <- current_patient_event_history_update[j-1,]$SGACT 
+        current_patient_event_history_update[j,]$lag_CWE_TOT <- current_patient_event_history_update[j-1,]$CWE_TOT
+        current_patient_event_history_update[j,]$CWE_TOT <- max(0,predicted_cwe_tot(cwe_tot_regression_coef,current_patient_event_history_update[j,][cwe_tot_predictors])$cwe_tot) #max(0,predicted_cwe_tot(cwe_tot_regression_coef$Value,current_patient_event_history_update[j,][cwe_tot_predictors])$cwe_tot)    
         current_patient_event_history_update[j,]$CWE_TOT_SCALED <- (current_patient_event_history_update[j,]$CWE_TOT - attr(scale(baseline_characteristics_run$CWE_TOT),"scaled:center"))/attr(scale(baseline_characteristics_run$CWE_TOT),"scaled:scale")
-        
         current_patient_event_history_update[j,]$lag_BREATHLESS_yn  <- current_patient_event_history_update[j-1,]$BREATHLESS_yn
         current_patient_event_history_update[j,]$lag_COUGHSPUTUM_yn <- current_patient_event_history_update[j-1,]$COUGHSPUTUM_yn
-        current_patient_event_history_update[j,]$lag_SGTOT         <- current_patient_event_history_update[j-1,]$SGTOT
-        
-        
-        current_patient_event_history_update[j,]$SGACT             <- min(100,max(0,predicted_SGACT(SGACT_regression_coef,current_patient_event_history_update[j,][SGACT_predictors])$SGACT))
-        current_patient_event_history_update[j,]$SGACT_SCALED      <- (current_patient_event_history_update[j,]$SGACT - attr(scale(baseline_characteristics_run$SGACT),"scaled:center"))/attr(scale(baseline_characteristics_run$SGACT),"scaled:scale")
-        
-        
-        current_patient_event_history_update[j,]$BREATHLESS_yn  <- rbinom(1,1,rbinom(1,1,predicted_breathless(breathless_regression_coef,current_patient_event_history_update[j,][breathless_predictors])$p.breathless))
+        current_patient_event_history_update[j,]$lag_SGTOT <- current_patient_event_history_update[j-1,]$SGTOT
+        current_patient_event_history_update[j,]$SGACT <- min(100,max(0,predicted_SGACT(SGACT_regression_coef,current_patient_event_history_update[j,][SGACT_predictors])$SGACT))
+        current_patient_event_history_update[j,]$SGACT_SCALED <- (current_patient_event_history_update[j,]$SGACT - attr(scale(baseline_characteristics_run$SGACT),"scaled:center"))/attr(scale(baseline_characteristics_run$SGACT),"scaled:scale")
+        current_patient_event_history_update[j,]$BREATHLESS_yn <- rbinom(1,1,rbinom(1,1,predicted_breathless(breathless_regression_coef,current_patient_event_history_update[j,][breathless_predictors])$p.breathless))
         current_patient_event_history_update[j,]$COUGHSPUTUM_yn <- rbinom(1,1,rbinom(1,1,predicted_coughsputum(coughsputum_regression_coef,current_patient_event_history_update[j,][coughsputum_predictors])$p.coughsputum))
-        
-        
-        current_patient_event_history_update[j,]$SGTOT         <- min(100,max(0,predicted_SGTOT(SGTOT_regression_coef,current_patient_event_history_update[j,][SGTOT_predictors])$SGTOT))
+        current_patient_event_history_update[j,]$SGTOT <- min(100,max(0,predicted_SGTOT(SGTOT_regression_coef,current_patient_event_history_update[j,][SGTOT_predictors])$SGTOT))
       }
-      
-    } #end for per patient
-    
+    } #end for loop per patient
+    # Update the simulated clinical history with all the annual intermediate outcomes 
     patient_event_history_update <- rbind(patient_event_history_update,current_patient_event_history_update[,c(patient_characteristics_saved)])
-    
   }
   
   #################################################################
