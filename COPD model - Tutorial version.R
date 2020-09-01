@@ -875,126 +875,75 @@ COPD_model_simulation <- function(patient_size_input,
   sev_exa_cost_hc_patient_discounted <- aggregate(patient_event_history_update$sev_exa_costs_hc_discounted,list(SIMID=patient_event_history_update$SIMID),sum)
   
   # Maintenance costs 
-  # GP and specialist visits
+  # GP and specialist visits are based on predictive functions. Apply these functions per row of the simulation results file as done above
   
-  ### Need to define predictive functions like in the simulation core of the model
-  ### Then apply these functions per row of the simulation results file as above (after merging baseline patient characteristics)
-  
-  # GP visits
+  # GP visits regression coefficients
   gpvisits_regression_coef <- read.csv("Model - regression coefficients/Costs/gpvisits_regression_coef_observed_data.csv",sep=";")
-  
-  # Predict GP visits
-  gpvisits_stable_predictors <- c("FEMALE","BMI_CLASS_2","BMI_CLASS_3","SMOKER","SMPKY","OTHER_CVD"
-                                  ,"DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS","EOS_yn")
-  
+  # Predictors GP visits
+  gpvisits_stable_predictors <- c("FEMALE","BMI_CLASS_2","BMI_CLASS_3","SMOKER","SMPKY","OTHER_CVD","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS","EOS_yn")
   gpvisits_predictors <- c(gpvisits_stable_predictors,"AGE_TIME","FEVPPA","SGACT","COUGHSPUTUM_yn","BREATHLESS_yn","SGTOT","MODEXAC_yn","SEVEXAC_yn")
-  
-  
-  ### Merge the two datsets: I'm creating another file here because I don't want to save all the patient
-  ### characteristics in the simulated results file
+  # Merge the two datsets and order the dataset by "SIMID". This is very important because after merging the order is lost.
   patient_event_history_update_maintenance_costs <- merge(patient_event_history_update[,1:19],baseline_characteristics[c("PTID",gpvisits_stable_predictors)],by.x = "PTID",by.y = "PTID")
-  
-  ### Order the dataset by "SIMID". This is very important because after merging the order is lost.
   patient_event_history_update_maintenance_costs <- patient_event_history_update_maintenance_costs[order(patient_event_history_update_maintenance_costs$SIMID),]
-  
+  # GP visits costs are calculated in the following function
   predicted_gpvisits <- function(regression_coefficents_gpvisits_input, patient_characteristics_gpvisits_input){
     patient_characteristics_gpvisits_input <- as.numeric(patient_characteristics_gpvisits_input)
     gpvisits <- sum(regression_coefficents_gpvisits_input*c(1,patient_characteristics_gpvisits_input))
-    return(list(gpvisits=gpvisits))
-    
-  }
+    return(list(gpvisits=gpvisits))}
   
-  # Specialist visits
+  # Specialist visits costs are calculated in a similar way to GP vistis costs
   specvisits_regression_coef <- read.csv("Model - regression coefficients/Costs/specvisits_regression_coef_observed_data.csv",sep=",")
-  
-  # Predict spec visits
   specvisits_predictors <- gpvisits_predictors
-  
   predicted_specvisits <- function(regression_coefficents_specvisits_input, patient_characteristics_specvisits_input){
     patient_characteristics_specvisits_input <- as.numeric(patient_characteristics_specvisits_input)
     specvisits <- sum(regression_coefficents_specvisits_input*c(1,patient_characteristics_specvisits_input))
-    return(list(specvisits=specvisits))
-  }
+    return(list(specvisits=specvisits))}
   
-  ### And finally predict for the simulation results
-  predicted_gpvisits_calc <-function(index){
-    exp(predicted_gpvisits(gpvisits_regression_coef$Estimate,patient_event_history_update_maintenance_costs[index,gpvisits_predictors])$gpvisits)
-  }
-  
+  # And finally predict for the simulation results
+  predicted_gpvisits_calc <-function(index){exp(predicted_gpvisits(gpvisits_regression_coef$Estimate,patient_event_history_update_maintenance_costs[index,gpvisits_predictors])$gpvisits)}
   num_gpvisits <- sapply(1:nrow(patient_event_history_update),predicted_gpvisits_calc) 
-  
-  predicted_specvisits_calc <-function(index){
-    exp(predicted_specvisits(specvisits_regression_coef$Estimate,patient_event_history_update_maintenance_costs[index,specvisits_predictors])$specvisits)
-  }
-  
+  predicted_specvisits_calc <-function(index){exp(predicted_specvisits(specvisits_regression_coef$Estimate,patient_event_history_update_maintenance_costs[index,specvisits_predictors])$specvisits)}
   num_specvisits <- sapply(1:nrow(patient_event_history_update),predicted_specvisits_calc)
-  
-  ### Add these to the simulated results file
-  patient_event_history_update$num_gpvisits   <- num_gpvisits
+  # And add these to the simulated results file
+  patient_event_history_update$num_gpvisits <- num_gpvisits
   patient_event_history_update$num_specvisits <- num_specvisits
   
-  
-  ### Read first the maintenance costs data
-  maintenance_costs_row_names <- c("Number primary care visits per year",
-                                   "Number specialist visits per year",
-                                   "Spirometries per year",
-                                   "Influenza vaccination per year",
-                                   "ICS costs/year",
-                                   "Distance primary clinic",
-                                   "Distance specialist clinic")
-  
-  # Base case
+  # Maintenance cost items are the following
+  maintenance_costs_row_names <- c("Number primary care visits per year", "Number specialist visits per year","Spirometries per year","Influenza vaccination per year","ICS costs/year","Distance primary clinic","Distance specialist clinic")
+  # Read the maintenance costs input data
   maintenance_costs <- read.csv("Model - datasets/Costs/maintenance costs.csv",sep=";",row.names = maintenance_costs_row_names)
   
-  #maintenance_costs
-  
-  ### Adjust then the number of gp and spec visits and multiply by the time interval where occurs
-  num_gpvisits_observed <- 0.422
+  # Adjust then the number of gp and spec visits and multiply by the time interval where occurs. See ViH paper for details (README file)
+  num_gpvisits_observed <- 0.422 #hard-coded from data
   num_gpvisits_country  <- maintenance_costs[1,1]
   patient_event_history_update$adjusted_num_gpvisits <- (patient_event_history_update$num_gpvisits*num_gpvisits_country/num_gpvisits_observed)*patient_event_history_update$diff_ANLYEAR
-  
-  
-  num_specvisits_observed <- 0.545
+  num_specvisits_observed <- 0.545 #hard-coded from data
   num_specvisits_country  <- maintenance_costs[2,1]
   patient_event_history_update$adjusted_num_specvisits <- (patient_event_history_update$num_specvisits*num_specvisits_country/num_specvisits_observed)*patient_event_history_update$diff_ANLYEAR
   
-  ### Add the costs per visit
-  patient_event_history_update$maintenance_gpvisits_cost_hc              <- patient_event_history_update$adjusted_num_gpvisits*maintenance_costs[1,2]
+  # Add the costs per visit
+  patient_event_history_update$maintenance_gpvisits_cost_hc <- patient_event_history_update$adjusted_num_gpvisits*maintenance_costs[1,2]
   patient_event_history_update$maintenance_gpvisits_cost_hc_discounted   <- patient_event_history_update$maintenance_gpvisits_cost_hc/(1+discount_rate_costs)^patient_event_history_update$ANLYEAR
-  patient_event_history_update$maintenance_specvisits_cost_hc            <- patient_event_history_update$adjusted_num_specvisits*maintenance_costs[2,2]
+  patient_event_history_update$maintenance_specvisits_cost_hc <- patient_event_history_update$adjusted_num_specvisits*maintenance_costs[2,2]
   patient_event_history_update$maintenance_specvisits_cost_hc_discounted <- patient_event_history_update$maintenance_specvisits_cost_hc/(1+discount_rate_costs)^patient_event_history_update$ANLYEAR
-  
-  patient_event_history_update$maintenance_gpvisits_cost_societal              <- patient_event_history_update$adjusted_num_gpvisits*maintenance_costs[1,3]
+  patient_event_history_update$maintenance_gpvisits_cost_societal <- patient_event_history_update$adjusted_num_gpvisits*maintenance_costs[1,3]
   patient_event_history_update$maintenance_gpvisits_cost_societal_discounted   <- patient_event_history_update$maintenance_gpvisits_cost_societal/(1+discount_rate_costs)^patient_event_history_update$ANLYEAR
-  patient_event_history_update$maintenance_specvisits_cost_societal            <- patient_event_history_update$adjusted_num_specvisits*maintenance_costs[2,3]
+  patient_event_history_update$maintenance_specvisits_cost_societal <- patient_event_history_update$adjusted_num_specvisits*maintenance_costs[2,3]
   patient_event_history_update$maintenance_specvisits_cost_societal_discounted <- patient_event_history_update$maintenance_specvisits_cost_societal/(1+discount_rate_costs)^patient_event_history_update$ANLYEAR
-  
-  
-  ### Now aggregate per SIMID: so what we get is the total number of visits during the lifetime
-  
-  ### Number of gpvisits
+    
+  # Now aggregate per SIMID: what we get is the total number of visits during the lifetime
   num_gpvisits_patient <- aggregate(patient_event_history_update$adjusted_num_gpvisits,list(SIMID=patient_event_history_update$SIMID),sum)
-  
-  ### Number of specialist visits
   num_specvisits_patient <- aggregate(patient_event_history_update$adjusted_num_specvisits,list(SIMID=patient_event_history_update$SIMID),sum)
-  
-  
-  ### Maintenance costs gpvisits
-  gpvisits_costs_patient_hc            <- aggregate(patient_event_history_update$maintenance_gpvisits_cost_hc,list(SIMID=patient_event_history_update$SIMID),sum)
+  gpvisits_costs_patient_hc <- aggregate(patient_event_history_update$maintenance_gpvisits_cost_hc,list(SIMID=patient_event_history_update$SIMID),sum)
   gpvisits_costs_patient_hc_discounted <- aggregate(patient_event_history_update$maintenance_gpvisits_cost_hc_discounted,list(SIMID=patient_event_history_update$SIMID),sum)
-  
-  gpvisits_costs_patient_societal            <- aggregate(patient_event_history_update$maintenance_gpvisits_cost_societal,list(SIMID=patient_event_history_update$SIMID),sum)
+  gpvisits_costs_patient_societal <- aggregate(patient_event_history_update$maintenance_gpvisits_cost_societal,list(SIMID=patient_event_history_update$SIMID),sum)
   gpvisits_costs_patient_societal_discounted <- aggregate(patient_event_history_update$maintenance_gpvisits_cost_societal_discounted,list(SIMID=patient_event_history_update$SIMID),sum)
-  
-  ### Maintenance costs spec visits
-  specvisits_costs_patient_hc            <- aggregate(patient_event_history_update$maintenance_specvisits_cost_hc,list(SIMID=patient_event_history_update$SIMID),sum)
+  specvisits_costs_patient_hc <- aggregate(patient_event_history_update$maintenance_specvisits_cost_hc,list(SIMID=patient_event_history_update$SIMID),sum)
   specvisits_costs_patient_hc_discounted <- aggregate(patient_event_history_update$maintenance_specvisits_cost_hc_discounted,list(SIMID=patient_event_history_update$SIMID),sum)
-  
-  specvisits_costs_patient_societal            <- aggregate(patient_event_history_update$maintenance_specvisits_cost_societal,list(SIMID=patient_event_history_update$SIMID),sum)
+  specvisits_costs_patient_societal <- aggregate(patient_event_history_update$maintenance_specvisits_cost_societal,list(SIMID=patient_event_history_update$SIMID),sum)
   specvisits_costs_patient_societal_discounted <- aggregate(patient_event_history_update$maintenance_specvisits_cost_societal_discounted,list(SIMID=patient_event_history_update$SIMID),sum)
-  
-  
-  ### Spirometries costs
+    
+  # Spirometries costs
   patient_event_history_update$maintenance_spirometries_cost_hc            <- patient_event_history_update$diff_ANLYEAR*maintenance_costs[3,1]*maintenance_costs[3,2]
   patient_event_history_update$maintenance_spirometries_cost_hc_discounted <- patient_event_history_update$maintenance_spirometries_cost_hc/(1+discount_rate_costs)^patient_event_history_update$ANLYEAR 
   
