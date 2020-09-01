@@ -230,7 +230,7 @@ COPD_model_simulation <- function(patient_size_input,
   ### SETUP ###
   #############
   
-  ### Step 1: read regression coefficients from csv files.
+  ### Read regression coefficients from csv files.
   lung_function_regression_coef         <- (read.csv(paste0(wd,c("/Model - regression coefficients/Lung function/lung_function_regression_coef_predicted_data2.csv")),sep=","))$Value
   lung_function_cov_matrix              <- read.csv(paste0(wd,c("/Model - regression coefficients/Lung function/lung_function_cov_matrix_predicted_data2.csv")),sep=";")
   cwe_tot_regression_coef               <- (read.csv(paste0(wd,c("/Model - regression coefficients/Exercise capacity/cwe_tot_regression_coef_predicted_data_v3.csv")),sep=","))$Value
@@ -254,7 +254,7 @@ COPD_model_simulation <- function(patient_size_input,
   pneumonia_hosp_regression_coef        <- (read.csv(paste0(wd,c("/Model - regression coefficients/Pneumonia/pneu_hosp_regression_coef_predicted_data.csv")),sep=";"))$Estimate
   pneumonia_hosp_cov_matrix             <- read.csv(paste0(wd,c("/Model - regression coefficients/Pneumonia/pneu_hosp_cov_matrix_predicted_data.csv")),sep=",")
   
-  ### Step 2: assign predictors (explanatory variables) for the regression equations used in the model (further details in the ViH or MDM papers - see README file)
+  ### Assign predictors (explanatory variables) for the regression equations used in the model (further details in the ViH or MDM papers - see README file)
   fev1_predictors        <- c("ANLYEAR","FEMALE","AGE","BMI_CLASS_2","BMI_CLASS_3","SMOKER","SMPKY","OTHER_CVD", "REVERSIBILITY","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","EOS_yn","ICS","FEVA_BL","MODEXAC_yn","SEVEXAC_yn")
   cwe_tot_predictors     <- c("FEMALE","BMI_CLASS_2","BMI_CLASS_3","SMOKER","SMPKY","OTHER_CVD","REVERSIBILITY","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS", "EOS_yn","AGE_TIME","FEVPPA","lag_SGACT","lag_CWE_TOT","MODEXAC_yn","SEVEXAC_yn")
   breathless_predictors  <- c("FEMALE","BMI_CLASS_2","BMI_CLASS_3","SMOKER","SMPKY_SCALED","OTHER_CVD","REVERSIBILITY_SCALED","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS","EOS_yn","ANLYEAR_SCALED","AGE_SCALED","FEVPPA_SCALED","MODEXAC_yn","SEVEXAC_yn","SGACT_SCALED","CWE_TOT_SCALED","lag_BREATHLESS_yn") 
@@ -267,11 +267,11 @@ COPD_model_simulation <- function(patient_size_input,
   pneumonia_predictors <- c("FEMALE","BMI_CLASS_2","BMI_CLASS_3","SMOKER","SMPKY","OTHER_CVD","REVERSIBILITY","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS","EOS_yn","AGE_TIME")
   pneumonia_hosp_predictors <- c("FEMALE", "BMI_CLASS_2","BMI_CLASS_3","SMOKER","SMPKY_SCALED","OTHER_CVD","REVERSIBILITY_SCALED","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS","EOS_yn","AGE_TIME_SCALED")
   
-  ### Step 3: Read the data with the patient characteristics and select the complete cases (no missing values in patient characteristics are allowed)
+  ### Read the data with the patient characteristics and select the complete cases (no missing values in patient characteristics are allowed)
   baseline_characteristics_run <- read.csv(paste0(wd,c("/Model - datasets/baseline_characteristics_predicted_data.csv")),sep=",")
   complete_cases <- baseline_characteristics_run[colnames(baseline_characteristics_run)][complete.cases(baseline_characteristics_run[colnames(baseline_characteristics_run)]),]
   
-  ### Step 4: indicate the patient characteristics that we will save during the simulation. 
+  ### Indicate the patient characteristics that we will save during the simulation. 
   history_characteristics <- c("SIMID","PTID","ANLYEAR","AGE_TIME","FEVA","FEVPPA","SEVEXAC_yn","MODEXAC_yn","CWE_TOT","SGACT","SGTOT","COUGHSPUTUM_yn","BREATHLESS_yn","PNEU_yn","pneu_hosp_yn","dead",
                                "FEMALE","AGE","BMI_CLASS_2","BMI_CLASS_3","SMOKER","SMPKY","OTHER_CVD",
                                "REVERSIBILITY", "DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","EOS_yn","ICS","FEVA_BL","HTSTD",
@@ -282,11 +282,9 @@ COPD_model_simulation <- function(patient_size_input,
   ########## MAIN PART I: simulate events ##########
   ##################################################
   
-  
-  ### Regression coefficients for PSA -- once per PSA
-  
+  # Regression coefficients for PSA -- once per PSA iteration: if the model is run in probabilistic mode, the regression coefficients are randomly drawn from multivariate normal distributions
+  # Treatment effect parameters are randomly drawn from uniform distributions, allowing a 10% variation from the deterministic value. 
   if(run_PSA_input == 1){
-    
     lung_function_regression_coef         <- mvrnorm(1,lung_function_regression_coef,lung_function_cov_matrix[,-1])
     cwe_tot_regression_coef               <- mvrnorm(1,cwe_tot_regression_coef,cwe_tot_cov_matrix[,-1])
     SGACT_regression_coef                 <- mvrnorm(1,SGACT_regression_coef,SGACT_cov_matrix[,-1])
@@ -299,86 +297,54 @@ COPD_model_simulation <- function(patient_size_input,
     coughsputum_regression_coef           <- mvrnorm(1,coughsputum_regression_coef,coughsputum_cov_matrix[,-1])
     mortality_weibull_regression_coef     <- mvrnorm(1,mortality_weibull_regression_coef,mortality_weibull_cov_matrix[,-1]) 
     
-    ### Treatment effect parameters must come at the end to ensure the same random seed in treatment arm  
+    ### Treatment effect parameters must come at the end to ensure the same random seed per treatment arm  
     exac_treatment_effect_tte_input        <- runif(1,min(c(exac_treatment_effect_tte_input-(exac_treatment_effect_tte_input-1)*0.1,exac_treatment_effect_tte_input+(exac_treatment_effect_tte_input-1)*0.1)),max(c(exac_treatment_effect_tte_input-(exac_treatment_effect_tte_input-1)*0.1,exac_treatment_effect_tte_input+(exac_treatment_effect_tte_input-1)*0.1)))
     exac_treatment_effect_sevexaprob_input <- runif(1,min(c(exac_treatment_effect_sevexaprob_input-(exac_treatment_effect_sevexaprob_input-1)*0.1,exac_treatment_effect_sevexaprob_input+(exac_treatment_effect_sevexaprob_input-1)*0.1)),max(c(exac_treatment_effect_sevexaprob_input-(exac_treatment_effect_sevexaprob_input-1)*0.1,exac_treatment_effect_sevexaprob_input+(exac_treatment_effect_sevexaprob_input-1)*0.1)))
     fev1_treatment_effect_input            <- runif(1,min(c(fev1_treatment_effect_input-(fev1_treatment_effect_input-1)*0.1,fev1_treatment_effect_input+(fev1_treatment_effect_input-1)*0.1)),max(c(fev1_treatment_effect_input-(fev1_treatment_effect_input-1)*0.1,fev1_treatment_effect_input+(fev1_treatment_effect_input-1)*0.1)))
-    
-  } # end if regression coef PSA
+    } # end if regression coef PSA
   
-  
-  ### Step 6: sample with replacement from the pool of patients
-  
-  ### IMPORTANT: Set a random seed to be able to replicate the results.
-  ### This first seed is used to draw the same pool of patients when the function is called multiple times.
-  ### Decide later if this has to go inside or outside the function. It depends on whether this seed is going to be 
-  ### always fixed (inside) or if it can change (outside - and make it random or user defined)
-  
+  # Next we sample with replacement from the pool of patients. IMPORTANT: Set a random seed to be able to replicate the results.
+  # This first seed is used to draw the same patients when the function is called multiple times: e.g. patients have to be the same per treatment arm.
   set.seed(seed_input) 
-  
-  ### Select the sample used in the simulation: sample with replacement from the dataset
-  #simulation_baseline_patients <-  complete_cases ##Average
   simulation_baseline_patients <-  complete_cases[sample(nrow(complete_cases), patient_size_input, replace = TRUE), ]
   
-  ### Add a simulation ID variable to summarize results after the simulation is finished.
-  ### This is needed because patients might be repeated in the simulation, and then aggregating 
-  ### results by patient ID is not correct.
+  # Add a simulation ID variable to summarize results after the simulation is finished. This is needed because patients might be repeated in the simulation, and then aggregating results by patient ID would not be correct.
   SIMID <- rep("NA",patient_size_input)
   simulation_baseline_patients <- cbind(simulation_baseline_patients,SIMID)
   
-  ### Create the simulation patient history table (for now is just empty)
+  # Create the simulation patient history table (for now is just empty)
   simulation_patients_history <- simulation_baseline_patients[FALSE,c(history_characteristics)]
   
-  ### Choose the 1st patient (later make a loop)
+  # Choose the 1st patient who will enter the loop
   patient_index <- 1
   
-  
-  ### Begin the loop on the simulation size (i.e. the number of patients you want to simulate)
+  # Begin the loop on the simulation size (i.e. the number of patients you want to simulate)
   for(patient_index in 1:patient_size_input){
     
-    # Print the patient index to know how advanced is the simulation.
-    # Try to show this in the interface.
+    # Tip: print the patient index to know how advanced is the simulation.
     if(run_PSA_input == 0){print(patient_index)}
     
     # Pick the current patient from those selected fomr baseline
     current_patient <- simulation_baseline_patients[patient_index,]
-    
-    #####################################################################################
-    # STEP1 : Predict the continuous variables at baseline since observed != predicted. #
-    # Otherwise, we get "strange" values after the first event.                         #
-    #####################################################################################
-    
     current_patient$SIMID <- patient_index
     
-    # Baseline predicted FEV1
+    # Predict only continuous variables at baseline. Otherwise, we may get "strange" values after the first event is simulated.    
     current_patient$FEVA          <- max(0,predicted_fev1(lung_function_regression_coef,current_patient[fev1_predictors],fev1_treatment_effect_input)$fev_1) 
     baseline_FEVPPA_calc          <- FEVPPA_calc(current_patient$FEMALE,current_patient$HTSTD,current_patient$AGE_TIME,current_patient$FEVA)
     current_patient$FEVPPA        <- baseline_FEVPPA_calc$FEVPPA
     current_patient$FEV1pred      <- baseline_FEVPPA_calc$FEV1_pred
     current_patient$FEVPPA_SCALED <- (current_patient$FEVPPA - attr(scale(baseline_characteristics_run$FEVPPA),"scaled:center"))/attr(scale(baseline_characteristics_run$FEVPPA),"scaled:scale")
-    
-    
     # Baseline predicted CWE (min observed is 42. here for now we truncate at 0)
-    # Note that this is not used then the model is run in observed data mode.
     current_patient$CWE_TOT        <- cwe_treatment_effect_input*max(0,predicted_cwe_tot(cwe_tot_regression_coef,current_patient[cwe_tot_predictors])$cwe_tot) #max(0,predicted_cwe_tot(cwe_tot_regression_coef$Value,current_patient[cwe_tot_predictors])$cwe_tot)
     current_patient$CWE_TOT_SCALED <- (current_patient$CWE_TOT - attr(scale(baseline_characteristics_run$CWE_TOT),"scaled:center"))/attr(scale(baseline_characteristics_run$CWE_TOT),"scaled:scale")
-    
-    # Baseline predicted SGACT
     current_patient$SGACT        <- min(100,max(0,sgact_treatment_effect_input+predicted_SGACT(SGACT_regression_coef,current_patient[SGACT_predictors])$SGACT))
     current_patient$SGACT_SCALED <- (current_patient$SGACT - attr(scale(baseline_characteristics_run$SGACT),"scaled:center"))/attr(scale(baseline_characteristics_run$SGACT),"scaled:scale")
-    
-    
-    # Baseline predicted breathlesness and coughsputum: NOT CHANGED because these are not continuous variables
-    
-    # Baseline predicted SGTOT
     current_patient$SGTOT        <- min(100,max(0,sgtot_treatment_effect_input+predicted_SGTOT(SGTOT_regression_coef,current_patient[SGTOT_predictors])$SGTOT))
     current_patient$SGTOT_SCALED <- (current_patient$SGTOT - attr(scale(baseline_characteristics_run$SGTOT),"scaled:center"))/attr(scale(baseline_characteristics_run$SGTOT),"scaled:scale")
-    
-    
+        
     # Save the characteristics to be used in the simulation history (not those that are stable, only those changing) 
     simulation_patients_history <- rbind(simulation_patients_history,current_patient[history_characteristics])
-    
-    
+        
     #############################################
     # STEP2: Sample from mortality distribution #
     #############################################
