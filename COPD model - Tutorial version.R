@@ -963,144 +963,78 @@ COPD_model_simulation <- function(patient_size_input,
   
   # Travel costs depend on the number of GP and specialist visits calculated above
   perspective <- "Societal"
-  
   patient_event_history_update$maintenance_distance_pcc_cost_societal            <- if(perspective=="Societal"){2*maintenance_costs[6,1]*maintenance_costs[6,2]*patient_event_history_update$adjusted_num_gpvisits}else{rep(0,row(patient_event_history_update))}
   patient_event_history_update$maintenance_distance_pcc_cost_societal_discounted <- patient_event_history_update$maintenance_distance_pcc_cost_societal/(1+discount_rate_costs)^patient_event_history_update$ANLYEAR
   patient_event_history_update$maintenance_distance_sc_cost_societal             <- if(perspective=="Societal"){2*maintenance_costs[7,1]*maintenance_costs[7,2]*patient_event_history_update$adjusted_num_specvisits}else{rep(0,row(patient_event_history_update))}
   patient_event_history_update$maintenance_distance_sc_cost_societal_discounted  <- patient_event_history_update$maintenance_distance_sc_cost_societal/(1+discount_rate_costs)^patient_event_history_update$ANLYEAR
-  
-  
+    
   # health care perspective
   perspective <- "Health care"
-  
   patient_event_history_update$maintenance_distance_pcc_cost_hc            <- if(perspective=="Societal"){2*maintenance_costs[6,1]*maintenance_costs[6,2]*patient_event_history_update$adjusted_num_gpvisits}else{rep(0,nrow(patient_event_history_update))}
   patient_event_history_update$maintenance_distance_pcc_cost_hc_discounted <- patient_event_history_update$maintenance_distance_pcc_cost_hc/(1+discount_rate_costs)^patient_event_history_update$ANLYEAR
   patient_event_history_update$maintenance_distance_sc_cost_hc             <- if(perspective=="Societal"){2*maintenance_costs[7,1]*maintenance_costs[7,2]*patient_event_history_update$adjusted_num_specvisits}else{rep(0,nrow(patient_event_history_update))}
   patient_event_history_update$maintenance_distance_sc_cost_hc_discounted  <- patient_event_history_update$maintenance_distance_sc_cost_hc/(1+discount_rate_costs)^patient_event_history_update$ANLYEAR
   
-  
-  ### Total maintenance costs 
-  
   #Total maintenance costs: societal 
-  patient_event_history_update$maintenance_costs_total_societal            <- patient_event_history_update$maintenance_gpvisits_cost_societal + patient_event_history_update$maintenance_specvisits_cost_societal + patient_event_history_update$maintenance_spirometries_cost_societal + patient_event_history_update$maintenance_influenza_vaccination_cost_societal + patient_event_history_update$maintenance_ics_cost_societal + patient_event_history_update$maintenance_distance_pcc_cost_societal + patient_event_history_update$maintenance_distance_sc_cost_societal
+  patient_event_history_update$maintenance_costs_total_societal <- patient_event_history_update$maintenance_gpvisits_cost_societal + patient_event_history_update$maintenance_specvisits_cost_societal + patient_event_history_update$maintenance_spirometries_cost_societal + patient_event_history_update$maintenance_influenza_vaccination_cost_societal + patient_event_history_update$maintenance_ics_cost_societal + patient_event_history_update$maintenance_distance_pcc_cost_societal + patient_event_history_update$maintenance_distance_sc_cost_societal
   patient_event_history_update$maintenance_costs_total_societal_discounted <- patient_event_history_update$maintenance_gpvisits_cost_societal_discounted + patient_event_history_update$maintenance_specvisits_cost_societal_discounted + patient_event_history_update$maintenance_spirometries_cost_societal_discounted + patient_event_history_update$maintenance_influenza_vaccination_cost_societal_discounted + patient_event_history_update$maintenance_ics_cost_societal_discounted + patient_event_history_update$maintenance_distance_pcc_cost_societal_discounted + patient_event_history_update$maintenance_distance_sc_cost_societal_discounted
-  
-  # Maintenance costs aggregated per patient and average 
-  maintenance_costs_total_societal_patient            <- aggregate(patient_event_history_update$maintenance_costs_total_societal,list(SIMID=patient_event_history_update$SIMID),sum)
+  maintenance_costs_total_societal_patient <- aggregate(patient_event_history_update$maintenance_costs_total_societal,list(SIMID=patient_event_history_update$SIMID),sum)
   maintenance_costs_total_societal_discounted_patient <- aggregate(patient_event_history_update$maintenance_costs_total_societal_discounted,list(SIMID=patient_event_history_update$SIMID),sum)
-  
-  
   #Total maintenance costs: hc 
-  patient_event_history_update$maintenance_costs_total_hc            <- patient_event_history_update$maintenance_gpvisits_cost_hc + patient_event_history_update$maintenance_specvisits_cost_hc + patient_event_history_update$maintenance_spirometries_cost_hc + patient_event_history_update$maintenance_influenza_vaccination_cost_hc + patient_event_history_update$maintenance_ics_cost_hc + patient_event_history_update$maintenance_distance_pcc_cost_hc + patient_event_history_update$maintenance_distance_sc_cost_hc
+  patient_event_history_update$maintenance_costs_total_hc <- patient_event_history_update$maintenance_gpvisits_cost_hc + patient_event_history_update$maintenance_specvisits_cost_hc + patient_event_history_update$maintenance_spirometries_cost_hc + patient_event_history_update$maintenance_influenza_vaccination_cost_hc + patient_event_history_update$maintenance_ics_cost_hc + patient_event_history_update$maintenance_distance_pcc_cost_hc + patient_event_history_update$maintenance_distance_sc_cost_hc
   patient_event_history_update$maintenance_costs_total_hc_discounted <- patient_event_history_update$maintenance_gpvisits_cost_hc_discounted + patient_event_history_update$maintenance_specvisits_cost_hc_discounted + patient_event_history_update$maintenance_spirometries_cost_hc_discounted + patient_event_history_update$maintenance_influenza_vaccination_cost_hc_discounted + patient_event_history_update$maintenance_ics_cost_hc_discounted + patient_event_history_update$maintenance_distance_pcc_cost_hc_discounted + patient_event_history_update$maintenance_distance_sc_cost_hc_discounted
-  # Maintenance costs aggregated per patient and average 
-  maintenance_costs_total_hc_patient            <- aggregate(patient_event_history_update$maintenance_costs_total_hc,list(SIMID=patient_event_history_update$SIMID),sum)
+  maintenance_costs_total_hc_patient <- aggregate(patient_event_history_update$maintenance_costs_total_hc,list(SIMID=patient_event_history_update$SIMID),sum)
   maintenance_costs_total_hc_discounted_patient <- aggregate(patient_event_history_update$maintenance_costs_total_hc_discounted,list(SIMID=patient_event_history_update$SIMID),sum)
   
-  
-  ## Side effects costs 
-  
-  #The assumption here is that the costs associated to pneumonia + hospitalization = cost severe exacerbation.
-  #Cost pneumonia - hospitalization = cost moderate exacerbation.
-  
+  # Side effects (pneumonia) costs. Assumption: costs associated to pneumonia + hospitalization = cost severe exacerbation. Cost pneumonia - hospitalization = cost moderate exacerbation.
   pneu_costs_calc_sim <- function(index){
-    
     if(patient_event_history_update[index,"PNEU_yn"]==1){
-      if(patient_event_history_update[index,"pneu_hosp_yn"]==1){
-        sev_exa_cost(patient_event_history_update[index,"AGE_TIME"])
-      }else{
-        mod_exa_cost(patient_event_history_update[index,"AGE_TIME"])
-      }
-    }else{0}
-    
+      if(patient_event_history_update[index,"pneu_hosp_yn"]==1){sev_exa_cost(patient_event_history_update[index,"AGE_TIME"])}
+      else{mod_exa_cost(patient_event_history_update[index,"AGE_TIME"])}}else{0}
   }
   
+  # These are the simulated exacerbation costs, societal perspective
   perspective <- "Societal"
-  
-  ### These are the simulated exacerbation costs
-  patient_event_history_update$pneu_costs_societal            <- sapply(1:nrow(patient_event_history_update),pneu_costs_calc_sim)
+  patient_event_history_update$pneu_costs_societal <- sapply(1:nrow(patient_event_history_update),pneu_costs_calc_sim)
   patient_event_history_update$pneu_costs_societal_discounted <- patient_event_history_update$pneu_costs_societal/(1+discount_rate_costs)^patient_event_history_update$ANLYEAR
-  
-  ### Total pneumonia costs per patient (aggregate and then average) societal
-  pneu_costs_societal_total_patient            <- aggregate(patient_event_history_update$pneu_costs_societal,list(SIMID=patient_event_history_update$SIMID),sum)
+  pneu_costs_societal_total_patient <- aggregate(patient_event_history_update$pneu_costs_societal,list(SIMID=patient_event_history_update$SIMID),sum)
   pneu_costs_societal_total_patient_discounted <- aggregate(patient_event_history_update$pneu_costs_societal_discounted,list(SIMID=patient_event_history_update$SIMID),sum)
-  
-  
-  
+  # Health care perspective  
   perspective <- "Health care"
-  ### These are the simulated exacerbation costs
-  patient_event_history_update$pneu_costs_hc            <- sapply(1:nrow(patient_event_history_update),pneu_costs_calc_sim)
+  patient_event_history_update$pneu_costs_hc <- sapply(1:nrow(patient_event_history_update),pneu_costs_calc_sim)
   patient_event_history_update$pneu_costs_hc_discounted <- patient_event_history_update$pneu_costs_hc/(1+discount_rate_costs)^patient_event_history_update$ANLYEAR
-  
-  ### Total pneumonia costs per patient (aggregate and then average) hc
-  pneu_costs_hc_total_patient            <- aggregate(patient_event_history_update$pneu_costs_hc,list(SIMID=patient_event_history_update$SIMID),sum)
+  pneu_costs_hc_total_patient  <- aggregate(patient_event_history_update$pneu_costs_hc,list(SIMID=patient_event_history_update$SIMID),sum)
   pneu_costs_hc_total_patient_discounted <- aggregate(patient_event_history_update$pneu_costs_hc_discounted,list(SIMID=patient_event_history_update$SIMID),sum)
   
-  
-  ### Total costs
-  
-  ### total societal undiscounted
+  # Total costs: societal undiscounted/discounted, societal/health care
   patient_event_history_update$total_costs_societal <- patient_event_history_update$treatment_costs_societal + patient_event_history_update$exacerbation_costs_societal + patient_event_history_update$maintenance_costs_total_societal + patient_event_history_update$pneu_costs_societal            
-  
-  ### Total costs per patient (aggregate and then average) societal
   total_costs_societal_patient <- aggregate(patient_event_history_update$total_costs_societal,list(SIMID=patient_event_history_update$SIMID),sum)
-  
-  ### total societal discounted
   patient_event_history_update$total_costs_societal_discounted <- patient_event_history_update$treatment_costs_societal_discounted + patient_event_history_update$exacerbation_costs_societal_discounted + patient_event_history_update$maintenance_costs_total_societal_discounted + patient_event_history_update$pneu_costs_societal_discounted            
-  
-  ### Total costs per patient (aggregate and then average) societal
   total_costs_societal_discounted_patient <- aggregate(patient_event_history_update$total_costs_societal_discounted,list(SIMID=patient_event_history_update$SIMID),sum)
   
-  
-  ### total HC undiscounted
   patient_event_history_update$total_costs_hc <- patient_event_history_update$treatment_costs_hc + patient_event_history_update$exacerbation_costs_hc + patient_event_history_update$maintenance_costs_total_hc + patient_event_history_update$pneu_costs_hc            
-  
-  ### Total costs per patient (aggregate and then average) hc
   total_costs_hc_patient <- aggregate(patient_event_history_update$total_costs_hc,list(SIMID=patient_event_history_update$SIMID),sum)
-  
-  ### total HC discounted
   patient_event_history_update$total_costs_hc_discounted <- patient_event_history_update$treatment_costs_hc_discounted + patient_event_history_update$exacerbation_costs_hc_discounted + patient_event_history_update$maintenance_costs_total_hc_discounted + patient_event_history_update$pneu_costs_hc_discounted            
-  
-  ### Total costs per patient (aggregate and then average) hc
   total_costs_hc_discounted_patient <- aggregate(patient_event_history_update$total_costs_hc_discounted,list(SIMID=patient_event_history_update$SIMID),sum)
   
-  
-  ### summary of total costs
-  
+  # Summary of total costs
   mean_total_costs_societal      <- round(mean(total_costs_societal_patient$x),0)
   mean_total_costs_societal_disc <- round(mean(total_costs_societal_discounted_patient$x),0)
-  
   mean_total_costs_hc <- round(mean(total_costs_hc_patient$x),0)
   mean_total_costs_hc_disc <- round(mean(total_costs_hc_discounted_patient$x),0)
   
+  # Finally, return model outcomes of interest
   
-  ### Return model outcomes 
-  
-  return(list(mean_annual_fev1_decline       = mean_annual_fev1_decline,
-              mean_life_expectancy           = mean_life_expectancy,
-              mean_mod_exa_rate              = mean_mod_exa_rate,
-              mean_sev_exa_rate              = mean_sev_exa_rate,
-              mean_CWE_TOT_change            = mean_CWE_TOT_change,
-              mean_SGACT_change              = mean_SGACT_change,
-              mean_cough_rate                = mean_cough_rate,
-              mean_time_cough                = mean_time_cough, # july 2018
-              mean_breathless_rate           = mean_breathless_rate,
-              mean_time_breath               = mean_time_breath, #july 2018
-              mean_pneu_rate                 = mean_pneu_rate,
-              mean_pneu_hosp_rate            = mean_pneu_hosp_rate,
-              mean_SGTOT_change              = mean_SGTOT_change,
-              mean_qalys                     = mean_qalys,
-              mean_qalys_disc                = mean_qalys_disc,
-              mean_total_costs_societal      = mean_total_costs_societal,
-              mean_total_costs_societal_disc = mean_total_costs_societal_disc,
-              mean_total_costs_hc            = mean_total_costs_hc,
-              mean_total_costs_hc_disc       = mean_total_costs_hc_disc))
+  return(list(mean_annual_fev1_decline = mean_annual_fev1_decline, mean_life_expectancy = mean_life_expectancy, mean_mod_exa_rate = mean_mod_exa_rate,
+              mean_sev_exa_rate = mean_sev_exa_rate, mean_CWE_TOT_change = mean_CWE_TOT_change, mean_SGACT_change = mean_SGACT_change,
+              mean_cough_rate = mean_cough_rate, mean_time_cough = mean_time_cough, mean_breathless_rate = mean_breathless_rate, mean_time_breath = mean_time_breath, 
+              mean_pneu_rate = mean_pneu_rate, mean_pneu_hosp_rate = mean_pneu_hosp_rate, mean_SGTOT_change = mean_SGTOT_change, mean_qalys = mean_qalys,
+              mean_qalys_disc = mean_qalys_disc, mean_total_costs_societal = mean_total_costs_societal, mean_total_costs_societal_disc = mean_total_costs_societal_disc,
+              mean_total_costs_hc = mean_total_costs_hc, mean_total_costs_hc_disc = mean_total_costs_hc_disc))
 } #end COPD_model_simulation function
 
-# To run the model simply call the model function with the appropriate inputs in the correct order. For example,
-# the line below will run the model for 500 patients, deterministically, without treatment effects and with a 
-# random seed equal to 177.
-
+# To run the model  call the model function with the appropriate inputs in the correct order. For example, the command below will run the model for 500 patients, 
+# deterministically, without treatment effects and with a random seed equal to 177.
 COPD_simulation_deterministic_results <- COPD_model_simulation(500, # Patient size
                                                                0, # 0 = deterministic run / 1 = probabilistic run
                                                                1, # Treatment effect: factor on time to exacerbation 
@@ -1112,81 +1046,31 @@ COPD_simulation_deterministic_results <- COPD_model_simulation(500, # Patient si
                                                                1, # Treatment effect: factor on probability of shortness of breath
                                                                0, # Treatment effect: absolute change in SGRQ total score
                                                                177) # random seed input
-
-
+# To see the model results, please type:
 COPD_simulation_deterministic_results
 
-
-# To run a probabilistic sensitivity analysis (PSA) we can use the function below, which is basically calling 
-# the simulation function multiple times and getting the average results.
-
-COPD_model_PSA <- function(psa_size_input,
-                           patient_size_input,
-                           exac_treatment_effect_tte_input,
-                           exac_treatment_effect_sevexa_input,
-                           fev1_treatment_effect_input,
-                           cwe_treatment_effect_input,
-                           sgact_treatment_effect_input,
-                           coughsputum_treatment_effect_input,
-                           breathless_treatment_effect_input,
-                           sgtot_treatment_effect_input){
-  
-  psa_history <- matrix(nrow=psa_size_input,ncol=19) #ncol is th enumber of variables we want to save. We fix this
-  colnames(psa_history) <- c("Annual FEV1 decline",
-                             "Life expectancy",
-                             "Moderate exacerbation rate",
-                             "Severe exacerbation rate",
-                             "Change in CWE score",
-                             "Change in SGRQ act. score",
-                             "Change in SGRQ total score",
-                             "Cough/sputum rate",
-                             "Cough/sputum time", # July 2018
-                             "Shortness of breath rate",
-                             "Shortness of breath time", # July 2018
-                             "Pneumonia rate",
-                             "Hospitalisation after pneu. rate",
-                             "QALYs",
-                             "QALYs (discounted)",
-                             "Costs (societal)",
-                             "Costs (societal discounted)",
-                             "Costs (Health-care)",
-                             "Costs (Health-care discounted)")
-  
+# To run a probabilistic sensitivity analysis (PSA) we can use the function below, which is calling the simulation function multiple times and getting the average results.
+COPD_model_PSA <- function(psa_size_input, patient_size_input, exac_treatment_effect_tte_input,exac_treatment_effect_sevexa_input, fev1_treatment_effect_input, cwe_treatment_effect_input,
+                           sgact_treatment_effect_input, coughsputum_treatment_effect_input,breathless_treatment_effect_input, sgtot_treatment_effect_input){
+  # Define a matrix to save PSA results
+  psa_history <- matrix(nrow=psa_size_input,ncol=19) #ncol is the number of variables we want to save. This is hard-coded here.
+  colnames(psa_history) <- c("Annual FEV1 decline", "Life expectancy", "Moderate exacerbation rate", "Severe exacerbation rate", "Change in CWE score",
+                             "Change in SGRQ act. score", "Change in SGRQ total score", "Cough/sputum rate", "Cough/sputum time", "Shortness of breath rate",
+                             "Shortness of breath time", "Pneumonia rate", "Hospitalisation after pneu. rate", "QALYs", "QALYs (discounted)", "Costs (societal)",
+                             "Costs (societal discounted)", "Costs (Health-care)", "Costs (Health-care discounted)")
+  # The PSA is a for loop in the number of PSA iterations to be run 
   for(i in 1:psa_size_input){
-    
-    current_psa <- COPD_model_simulation(patient_size_input,
-                                         1, #note 1 here hardcoded because the main function will run in probabilistic mode
-                                         exac_treatment_effect_tte_input,
-                                         exac_treatment_effect_sevexa_input,
-                                         fev1_treatment_effect_input,
-                                         cwe_treatment_effect_input,
-                                         sgact_treatment_effect_input,
-                                         coughsputum_treatment_effect_input,
-                                         breathless_treatment_effect_input,
-                                         sgtot_treatment_effect_input,
-                                         i) # note i is the random seed, which will differ per PSA iteration
-    
-    psa_history[i,] <- c(current_psa$mean_annual_fev1_decline,
-                         current_psa$mean_life_expectancy,
-                         current_psa$mean_mod_exa_rate,
-                         current_psa$mean_sev_exa_rate,
-                         current_psa$mean_CWE_TOT_change,
-                         current_psa$mean_SGACT_change,
-                         current_psa$mean_SGTOT_change,
-                         current_psa$mean_cough_rate,
-                         current_psa$mean_time_cough, # July 2018
-                         current_psa$mean_breathless_rate,
-                         current_psa$mean_time_breath, # July 2018
-                         current_psa$mean_pneu_rate,
-                         current_psa$mean_pneu_hosp_rate,
-                         current_psa$mean_qalys,
-                         current_psa$mean_qalys_disc,
-                         current_psa$mean_total_costs_societal,
-                         current_psa$mean_total_costs_societal_disc,
-                         current_psa$mean_total_costs_hc,
-                         current_psa$mean_total_costs_hc_disc)
-    
+    current_psa <- COPD_model_simulation(patient_size_input, 1, #note 1 here hardcoded because the main function will run in probabilistic mode
+                                         exac_treatment_effect_tte_input, exac_treatment_effect_sevexa_input, fev1_treatment_effect_input,
+                                         cwe_treatment_effect_input, sgact_treatment_effect_input, coughsputum_treatment_effect_input,
+                                         breathless_treatment_effect_input, sgtot_treatment_effect_input, i) # note i is the random seed, which will differ per PSA iteration
+    # In each column of the PSA matrix defined above, we save the average results per PSA iteration
+    psa_history[i,] <- c(current_psa$mean_annual_fev1_decline, current_psa$mean_life_expectancy, current_psa$mean_mod_exa_rate, current_psa$mean_sev_exa_rate,
+                         current_psa$mean_CWE_TOT_change, current_psa$mean_SGACT_change, current_psa$mean_SGTOT_change, current_psa$mean_cough_rate,
+                         current_psa$mean_time_cough, current_psa$mean_breathless_rate, current_psa$mean_time_breath, current_psa$mean_pneu_rate,
+                         current_psa$mean_pneu_hosp_rate, current_psa$mean_qalys, current_psa$mean_qalys_disc, current_psa$mean_total_costs_societal,
+                         current_psa$mean_total_costs_societal_disc, current_psa$mean_total_costs_hc, current_psa$mean_total_costs_hc_disc)
   }
-  
+  # The function resturns the matrix with the PSA results
   return(list(psa_history=psa_history))
 } # end PSA function
