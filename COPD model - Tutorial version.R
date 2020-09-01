@@ -2,27 +2,23 @@
 ########## Patient-level discrete event simulation model for COPD ######################
 ########################################################################################
 
-# Original work Copyright (C) 2019 Isaac Corro Ramos
+# Original work Copyright (C) 2019/2020 Isaac Corro Ramos
 
-# Before the simulation code starts, make sure that all the packages below are installed in your computer.
-# Then load the packages.
+# Before the simulation code starts, make sure that all the packages below are installed in your computer. Then load the followingpackages.
 library(lattice)
 library(MASS)
 library(survival)
 library(plyr)
 
-# When you are reading external files and exporting results you may set a working directory.
-# This can be for example the folder where you saved some previous results.
-# Do not forget to change this path into your personal working directory.
+# When you are reading external files and exporting results you may set a working directory. This can be for example the folder where you saved some previous results.
+# Do not forget to change this path into your personal working directory. 
 wd <- setwd("C:/Users/Isaac/Dropbox/COPD")
 
 # This model makes use of previously estimated regression equations to predict time to events and COPD-related intermediate outcomes.
 # These regression equations were estimated somewhere else and the results (e.g. the regression coefficients) can be 
-# found in the paper by Hoogendoorn et al. (see README file).
-# The simulation model reads these coefficients from previously saved .csv files. With these regression coefficients
-# and patient characteristics (that will be read from another file), the functions below can be used to predict time to events 
-# and COPD-related intermediate outcomes. 
-# You can choose to read these functions from a different R file. In that case, you would need a statement like this:
+# found in the paper by Hoogendoorn et al. (see README file). The simulation model reads these coefficients from previously saved .csv files. 
+# With these regression coefficients and patient characteristics (that will be read from another file), the functions below can be used to predict time to events 
+# and COPD-related intermediate outcomes. You can choose to read these functions from a different R file. In that case, you would need a statement like this:
 # source("COPD model simulation - auxiliar functions.R"). 
 # However, in this case, we decided to show all functions in the same file.
 
@@ -31,43 +27,28 @@ wd <- setwd("C:/Users/Isaac/Dropbox/COPD")
 # Three events can occur in the simulation: death, exacerbation and pneumonia.
 
 ### TIME TO DEATH (AT BASELINE)
-# Time to death (at baseline) is a function of the previously estimated regression coefficients and patient characteristics.
-# It is assumed to follow a Weibull distribution.
-
-predicted_mortality_weibull <- function(regression_coefficents_mortality_weibull_input, 
-                                        patient_characteristics_mortality_weibull_input){
+# Time to death (at baseline) is a function of the previously estimated regression coefficients and patient characteristics. It is assumed to follow a Weibull distribution.
+predicted_mortality_weibull <- function(regression_coefficents_mortality_weibull_input, patient_characteristics_mortality_weibull_input){
   patient_characteristics_mortality_weibull_input <- as.numeric(patient_characteristics_mortality_weibull_input)
-  ### the last element in the coefficients inputs is Log(scale) in survreg.
-  ### Thus, exp(tail(mortality_weibull_regression_coef$Value,n=1)) is scale in survreg.
-  ### BUT scale in survreg is 1/shape in rweibull.
+  # The last element in the coefficients inputs is Log(scale) in survreg. Thus, exp(tail(mortality_weibull_regression_coef$Value,n=1)) is scale in survreg.
+  # BUT scale in survreg is 1/shape in rweibull.
   shape_mortality_weibull <- 1/exp(tail(regression_coefficents_mortality_weibull_input,n=1))
   scale_mortality_weibull <- exp(sum(head(regression_coefficents_mortality_weibull_input,n=-1)*c(1,patient_characteristics_mortality_weibull_input)) )
-  return(list(shape_mortality_weibull=shape_mortality_weibull,
-              scale_mortality_weibull=scale_mortality_weibull))
+  return(list(shape_mortality_weibull=shape_mortality_weibull, scale_mortality_weibull=scale_mortality_weibull))
 }
 
 ### TIME TO EXACERBATION
-# Time to exacerbation is a function of the previously estimated regression coefficients and patient characteristics.
-# It is assumed to follow a Weibull distribution.
-
-predicted_exacerbation_weibull <- function(regression_coefficents_exacerbation_weibull_input, 
-                                           patient_characteristics_exacerbation_weibull_input){
+# Time to exacerbation is a function of the previously estimated regression coefficients and patient characteristics. It is assumed to follow a Weibull distribution.
+predicted_exacerbation_weibull <- function(regression_coefficents_exacerbation_weibull_input, patient_characteristics_exacerbation_weibull_input){
   patient_characteristics_exacerbation_weibull_input <- as.numeric(patient_characteristics_exacerbation_weibull_input)
-  ### the last element in the coefficients inputs is Log(scale) in survreg.
-  ### Thus, exp(tail(exacerbation_weibull_regression_coef$Value,n=1)) is scale in survreg.
-  ### BUT scale in survreg is 1/shape in rweibull.
   shape_exacerbation_weibull <- 1/exp(tail(regression_coefficents_exacerbation_weibull_input,n=1))
   scale_exacerbation_weibull <- exp(sum(head(regression_coefficents_exacerbation_weibull_input,n=-1)*c(1,patient_characteristics_exacerbation_weibull_input)) )
-  return(list(shape_exacerbation_weibull=shape_exacerbation_weibull,
-              scale_exacerbation_weibull=scale_exacerbation_weibull))
+  return(list(shape_exacerbation_weibull=shape_exacerbation_weibull, scale_exacerbation_weibull=scale_exacerbation_weibull))
 }
 
 ### EXACERBATION SEVERITY
-# The probability of experiencing a severe exacerbation is a function of the previously estimated regression coefficients 
-# and patient characteristics. The function return also the log odds.  
-
-predicted_exacerbation_severity <- function(regression_coefficents_exacerbation_severity_input, 
-                                            patient_characteristics_exacerbation_severity_input){
+# The probability of experiencing a severe exacerbation is a function of the previously estimated regression coefficients and patient characteristics. The function return also the log odds.  
+predicted_exacerbation_severity <- function(regression_coefficents_exacerbation_severity_input, patient_characteristics_exacerbation_severity_input){
   patient_characteristics_exacerbation_severity_input <- as.numeric(patient_characteristics_exacerbation_severity_input)
   log.oods.exacerbation_severity <- sum(regression_coefficents_exacerbation_severity_input*c(1,patient_characteristics_exacerbation_severity_input)) # this is log(ODDS)
   p.exacerbation_severity <- exp(log.oods.exacerbation_severity)/(1+exp(log.oods.exacerbation_severity))
@@ -75,43 +56,29 @@ predicted_exacerbation_severity <- function(regression_coefficents_exacerbation_
 }
 
 ### TIME TO PNEUMONIA
-# Time to pneumonia is a function of the previously estimated regression coefficients and patient characteristics.
-# It is assumed to follow a Weibull distribution.
+# Time to pneumonia is a function of the previously estimated regression coefficients and patient characteristics. It is assumed to follow a Weibull distribution.
 
-predicted_pneumonia_weibull <- function(regression_coefficents_pneumonia_weibull_input, 
-                                        patient_characteristics_pneumonia_weibull_input){
+predicted_pneumonia_weibull <- function(regression_coefficents_pneumonia_weibull_input, patient_characteristics_pneumonia_weibull_input){
   patient_characteristics_pneumonia_weibull_input <- as.numeric(patient_characteristics_pneumonia_weibull_input)
-  ### the last element in the coefficients inputs is Log(scale) in survreg.
-  ### Thus, exp(tail(pneumonia_weibull_regression_coef$Value,n=1)) is scale in survreg.
-  ### BUT scale in survreg is 1/shape in rweibull.
   shape_pneumonia_weibull <- 1/exp(tail(regression_coefficents_pneumonia_weibull_input,n=1))
   scale_pneumonia_weibull <- exp(sum(head(regression_coefficents_pneumonia_weibull_input,n=-1)*c(1,patient_characteristics_pneumonia_weibull_input)) )
-  return(list(shape_pneumonia_weibull=shape_pneumonia_weibull,
-              scale_pneumonia_weibull=scale_pneumonia_weibull))
+  return(list(shape_pneumonia_weibull=shape_pneumonia_weibull,scale_pneumonia_weibull=scale_pneumonia_weibull))
 }
 
 ### PNEUMONIA SEVERITY
-# The probability of experiencing a pneumonia leading to hospitalisation is a function of the previously estimated regression 
-# coefficients and patient characteristics. The function return also the log odds.  
-
-predicted_pneumonia_hosp <- function(regression_coefficents_pneumonia_hosp_input, 
-                                     patient_characteristics_pneumonia_hosp_input){
+# The probability of experiencing a pneumonia leading to hospitalisation is a function of the previously estimated regression coefficients and patient characteristics. The function return also the log odds.  
+predicted_pneumonia_hosp <- function(regression_coefficents_pneumonia_hosp_input, patient_characteristics_pneumonia_hosp_input){
   patient_characteristics_pneumonia_hosp_input <- as.numeric(patient_characteristics_pneumonia_hosp_input)
   log.oods.pneumonia.hosp <- sum(regression_coefficents_pneumonia_hosp_input*c(1,patient_characteristics_pneumonia_hosp_input)) # this is log(ODDS)
   p.pneumonia.hosp        <- exp(log.oods.pneumonia.hosp)/(1+exp(log.oods.pneumonia.hosp))
   return(list(log.oods.pneumonia.hosp=log.oods.pneumonia.hosp,p.pneumonia.hosp=p.pneumonia.hosp)) 
 }
 
-# Six intermediate outcomes are included in the simulation: lung function, exercise capacity, symptoms (shortness of breath 
-# and cough/sputum), physical activity and disease-specific quality of life.
+# Six intermediate outcomes are included in the simulation: lung function, exercise capacity, symptoms (shortness of breath and cough/sputum), physical activity and disease-specific quality of life.
 
 ### LUNG FUNCTION
-# Lung function defined as FEV1 is predicted as a function of the previously estimated regression coefficients, 
-# patient characteristics and possibly a treatmemt effect.
-
-predicted_fev1 <- function(regression_coefficents_fev1_input, 
-                           patient_characteristics_fev1_input,
-                           fev1_treatment_effect_input){
+# Lung function defined as FEV1 is predicted as a function of the previously estimated regression coefficients, patient characteristics and possibly a treatmemt effect.
+predicted_fev1 <- function(regression_coefficents_fev1_input, patient_characteristics_fev1_input,fev1_treatment_effect_input){
   patient_characteristics_fev1 <- as.numeric(patient_characteristics_fev1_input)
   x <- c(1,patient_characteristics_fev1[1]*fev1_treatment_effect_input, #this is anlyear
          patient_characteristics_fev1[17], #this is FEVA_BL
@@ -126,7 +93,6 @@ predicted_fev1 <- function(regression_coefficents_fev1_input,
 #Equation 1B males (ECSC 1993 used by BI): if FEMALE=0 FEV1pred =  0.0430*htstd - 0.0290*AGE_TIME - 2.490.
 #Equation 1B FEMALEs (ECSC 1993 used by BI):  if FEMALE=1 FEV1pred =  0.0395*htstd - 0.0250*AGE_TIME - 2.600.
 #Equation 1C: FEVPPA = FEVA / FEV1pred *100
-
 FEVPPA_calc <- function(FEMALE_input,height_input,age_input,feva_input){
   if(FEMALE_input==0){FEV1_pred <- 0.0430*height_input-0.0290*age_input-2.490}
   if(FEMALE_input==1){FEV1_pred <- 0.0395*height_input-0.0250*age_input-2.600}
@@ -135,11 +101,8 @@ FEVPPA_calc <- function(FEMALE_input,height_input,age_input,feva_input){
   return(list(FEVPPA=FEVPPA,FEV1_pred=FEV1_pred))
 }
 
-### EXERCISE CAPACITY 
-# Estimated as continuous exercise capacity (defined as treadmill test in seconds).
-
-predicted_cwe_tot <- function(regression_coefficents_cwe_tot_input, 
-                              patient_characteristics_cwe_tot_input){
+### EXERCISE CAPACITY: Estimated as continuous exercise capacity (defined as treadmill test in seconds).
+predicted_cwe_tot <- function(regression_coefficents_cwe_tot_input, patient_characteristics_cwe_tot_input){
   patient_characteristics_cwe_tot_input <- as.numeric(patient_characteristics_cwe_tot_input)
   totexa <- max(tail(patient_characteristics_cwe_tot_input,2))
   cwe_tot <- sum(regression_coefficents_cwe_tot_input*c(1,head(patient_characteristics_cwe_tot_input,-2),totexa))
@@ -147,11 +110,9 @@ predicted_cwe_tot <- function(regression_coefficents_cwe_tot_input,
 }
 
 ### SHORTNESS OF BREATH
-# The probability of experiencing shortness of breath is a function of the previously estimated regression coefficients 
-# and patient characteristics. The function return also the log odds.  
-
-predicted_breathless <- function(regression_coefficents_breathless_input, 
-                                 patient_characteristics_breathless_input){
+# The probability of experiencing shortness of breath is a function of the previously estimated regression coefficients and patient characteristics. 
+#The function return also the log odds.  
+predicted_breathless <- function(regression_coefficents_breathless_input, patient_characteristics_breathless_input){
   patient_characteristics_breathless_input <- as.numeric(patient_characteristics_breathless_input)
   log.oods.breathless <- sum(regression_coefficents_breathless_input*c(1,patient_characteristics_breathless_input)) 
   p.breathless <- exp(log.oods.breathless)/(1+exp(log.oods.breathless))
@@ -159,11 +120,9 @@ predicted_breathless <- function(regression_coefficents_breathless_input,
 }
 
 ### COUGH/SPUTUM
-# The probability of experiencing cough/sputum is a function of the previously estimated regression coefficients 
-# and patient characteristics. The function return also the log odds.  
-
-predicted_coughsputum <- function(regression_coefficents_coughsputum_input, 
-                                  patient_characteristics_coughsputum_input){
+# The probability of experiencing cough/sputum is a function of the previously estimated regression coefficients and patient characteristics. 
+# The function return also the log odds.  
+predicted_coughsputum <- function(regression_coefficents_coughsputum_input, patient_characteristics_coughsputum_input){
   patient_characteristics_coughsputum_input <- as.numeric(patient_characteristics_coughsputum_input)
   log.oods.coughsputum <- sum(regression_coefficents_coughsputum_input*c(1,patient_characteristics_coughsputum_input)) # this is log(ODDS)
   p.coughsputum <- exp(log.oods.coughsputum)/(1+exp(log.oods.coughsputum))
@@ -171,22 +130,16 @@ predicted_coughsputum <- function(regression_coefficents_coughsputum_input,
 }
 
 ### PHYSICAL ACTIVITY
-# Predicted as SGRQ Activity score. It is a function of the previously estimated regression coefficients 
-# and patient characteristics.
-
-predicted_SGACT <- function(regression_coefficents_SGACT_input, 
-                            patient_characteristics_SGACT_input){
+# Predicted as SGRQ Activity score. It is a function of the previously estimated regression coefficients and patient characteristics.
+predicted_SGACT <- function(regression_coefficents_SGACT_input, patient_characteristics_SGACT_input){
   patient_characteristics_SGACT_input <- as.numeric(patient_characteristics_SGACT_input)
   SGACT <- sum(regression_coefficents_SGACT_input*c(1,patient_characteristics_SGACT_input))
   return(list(SGACT=SGACT))
 }
 
 ### QUALITY OF LIFE
-# Disease specific quality of life defined as SGRQ total score. It is a function of the previously estimated regression coefficients 
-# and patient characteristics.
-
-predicted_SGTOT <- function(regression_coefficents_SGTOT_input, 
-                            patient_characteristics_SGTOT_input){
+# Disease specific quality of life defined as SGRQ total score. It is a function of the previously estimated regression coefficients and patient characteristics.
+predicted_SGTOT <- function(regression_coefficents_SGTOT_input, patient_characteristics_SGTOT_input){
   patient_characteristics_SGTOT_input <- as.numeric(patient_characteristics_SGTOT_input)
   SGTOT <- sum(regression_coefficents_SGTOT_input*c(1,patient_characteristics_SGTOT_input))
   return(list(SGTOT=SGTOT))
@@ -195,13 +148,10 @@ predicted_SGTOT <- function(regression_coefficents_SGTOT_input,
 # The main simulation starts below. The code is used to 1) simulate patients’ clinical history, 2) calculate costs and 
 # 3) calculate QALYs. Patients’ clinical histories are simulated first and, based on these, costs and QALYs are subsequently 
 # calculated. Note that this could be implemented as three independent functions but in this tutorial we decided to show everything
-# as one larger function called COPD_model_simulation. If a probabilistic sensitivity analysis is conducted, this function
-# is basically called multiple times.
-
+# as one larger function called COPD_model_simulation. If a probabilistic sensitivity analysis is conducted, this function is basically called multiple times.
 # The input parameters of the COPD_model_simulation function are the following:
 # 1. patient_size_input = number of patients included in the simulation.
 # 2. run_PSA_input = runs the model in probabilistic mode. Otherwise, deterministic.
-
 # Eight treatment effect parameters:
 # 3. exac_treatment_effect_tte_input = variable to indicate increase (or decrease) in time to exacerbation. Default should be 1.
 # 4. exac_treatment_effect_sevexaprob_input = variable to indicate increase (or decrease) in probability of experiencing a severe exacerbation. Default should be 1.
@@ -211,23 +161,11 @@ predicted_SGTOT <- function(regression_coefficents_SGTOT_input,
 # 8. coughsputum_treatment_effect_input = variable to indicate increase (or decrease) in probability of experiencing cough/sputum. Default should be 1.
 # 9. breathless_treatment_effect_input variable to indicate increase (or decrease) in probability of experiencing shortness of breath. Default should be 1.
 # 10. sgtot_treatment_effect_input = variable to indicate increase (or decrease) in quality of life. Default should be 0.  
-
 # Other parameters 
 # 11. seed_input = A random seed is used to ensure consistency in the model results as explained in the MDM paper (see README file).
-COPD_model_simulation <- function(patient_size_input,
-                                  run_PSA_input,
-                                  exac_treatment_effect_tte_input,
-                                  exac_treatment_effect_sevexaprob_input,
-                                  fev1_treatment_effect_input,
-                                  cwe_treatment_effect_input,
-                                  sgact_treatment_effect_input,
-                                  coughsputum_treatment_effect_input,
-                                  breathless_treatment_effect_input,
-                                  sgtot_treatment_effect_input,
-                                  seed_input){
-  #############
-  ### SETUP ###
-  #############
+COPD_model_simulation <- function(patient_size_input, run_PSA_input, exac_treatment_effect_tte_input, exac_treatment_effect_sevexaprob_input,
+                                  fev1_treatment_effect_input, cwe_treatment_effect_input, sgact_treatment_effect_input,coughsputum_treatment_effect_input,
+                                  breathless_treatment_effect_input, sgtot_treatment_effect_input,seed_input){
   
   ### Read regression coefficients from csv files.
   lung_function_regression_coef         <- (read.csv(paste0(wd,c("/Model - regression coefficients/Lung function/lung_function_regression_coef_predicted_data2.csv")),sep=","))$Value
@@ -272,15 +210,12 @@ COPD_model_simulation <- function(patient_size_input,
   
   ### Indicate the patient characteristics that we will save during the simulation. 
   history_characteristics <- c("SIMID","PTID","ANLYEAR","AGE_TIME","FEVA","FEVPPA","SEVEXAC_yn","MODEXAC_yn","CWE_TOT","SGACT","SGTOT","COUGHSPUTUM_yn","BREATHLESS_yn","PNEU_yn","pneu_hosp_yn","dead",
-                               "FEMALE","AGE","BMI_CLASS_2","BMI_CLASS_3","SMOKER","SMPKY","OTHER_CVD",
-                               "REVERSIBILITY", "DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","EOS_yn","ICS","FEVA_BL","HTSTD",
-                               "lag_SGACT","lag_CWE_TOT","lag_BREATHLESS_yn","lag_COUGHSPUTUM_yn","lag_SGTOT",
-                               "SMPKY_SCALED","REVERSIBILITY_SCALED","ANLYEAR_SCALED","AGE_SCALED","FEVPPA_SCALED","SGACT_SCALED","CWE_TOT_SCALED")
+                               "FEMALE","AGE","BMI_CLASS_2","BMI_CLASS_3","SMOKER","SMPKY","OTHER_CVD", "REVERSIBILITY", "DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","EOS_yn","ICS","FEVA_BL","HTSTD",
+                               "lag_SGACT","lag_CWE_TOT","lag_BREATHLESS_yn","lag_COUGHSPUTUM_yn","lag_SGTOT", "SMPKY_SCALED","REVERSIBILITY_SCALED","ANLYEAR_SCALED","AGE_SCALED","FEVPPA_SCALED","SGACT_SCALED","CWE_TOT_SCALED")
   
   ##################################################
   ########## MAIN PART I: simulate events ##########
   ##################################################
-  
   # Regression coefficients for PSA -- once per PSA iteration: if the model is run in probabilistic mode, the regression coefficients are randomly drawn from multivariate normal distributions
   # Treatment effect parameters are randomly drawn from uniform distributions, allowing a 10% variation from the deterministic value. 
   if(run_PSA_input == 1){
@@ -340,14 +275,12 @@ COPD_model_simulation <- function(patient_size_input,
     current_patient$SGACT_SCALED <- (current_patient$SGACT - attr(scale(baseline_characteristics_run$SGACT),"scaled:center"))/attr(scale(baseline_characteristics_run$SGACT),"scaled:scale")
     current_patient$SGTOT        <- min(100,max(0,sgtot_treatment_effect_input+predicted_SGTOT(SGTOT_regression_coef,current_patient[SGTOT_predictors])$SGTOT))
     current_patient$SGTOT_SCALED <- (current_patient$SGTOT - attr(scale(baseline_characteristics_run$SGTOT),"scaled:center"))/attr(scale(baseline_characteristics_run$SGTOT),"scaled:scale")
-        
     # Save the characteristics to be used in the simulation history (not those that are stable, only those changing) 
     simulation_patients_history <- rbind(simulation_patients_history,current_patient[history_characteristics])
         
     ######################################
     # Sample from mortality distribution #
     ######################################
-    
     # These random seeds are used to draw the life expectancy. They ensure that patients in different arms have consistent time to death.
     # For example, if no treatment effect has been applied, time to death should be the same.
     # For the PSA, use a different seed for each patient in the loop: e.g. loop size is 500x100 so 100 is number of patients.
@@ -366,7 +299,6 @@ COPD_model_simulation <- function(patient_size_input,
     #######################################################
     # Start the "timed" simulation (while loop = clock)   #
     #######################################################
-    
     # Initialize the index for events 
     current_event   <- 1
     
@@ -385,7 +317,6 @@ COPD_model_simulation <- function(patient_size_input,
       ###########################################
       # Sample exacerbation and pneumonia time  #
       ###########################################
-      
       # Exacerbation is Weibull
       current_exacerbation_parameters <- predicted_exacerbation_weibull(exacerbation_weibull_regression_coef,current_patient[exacerbation_predictors])
       current_exacerbation_time       <- rweibull(1,current_exacerbation_parameters$shape_exacerbation_weibull,current_exacerbation_parameters$scale_exacerbation_weibull)
@@ -398,7 +329,6 @@ COPD_model_simulation <- function(patient_size_input,
       ####################################
       # Update patient characteristics   #
       ####################################
-      
       # We first copy all the previous characteristics
       current_patient_update <- current_patient
       
@@ -455,21 +385,18 @@ COPD_model_simulation <- function(patient_size_input,
             
       # If a pneumonia happened, then update at pneumonia time the following characteristics:
       if(min(current_remaining_life_exp,current_exacerbation_time,current_pneumonia_time)==current_pneumonia_time){
-        
         # Update time-dependent characteristics
         current_patient_update$ANLYEAR         <- current_patient$ANLYEAR  + current_pneumonia_time
         current_patient_update$ANLYEAR_SCALED  <- (current_patient_update$ANLYEAR - 1.529411)/1.376549 # hard-coded based on dataset
         current_patient_update$lag_ANLYEAR     <- current_pneumonia_time
         current_patient_update$AGE_TIME        <- current_patient$AGE_TIME + current_pneumonia_time
         current_patient_update$AGE_TIME_SCALED <- (current_patient_update$AGE_TIME - attr(scale(baseline_characteristics_run$AGE_TIME),"scaled:center"))/attr(scale(baseline_characteristics_run$AGE_TIME),"scaled:scale")
-        
         # Force death at 100 years
         if(current_patient_update$AGE_TIME>100){current_patient_update$dead <- 1}
         
         # Update pneumonia status 
         current_patient_update$PNEU_yn      <- 1
         current_patient_update$pneu_hosp_yn <- rbinom(1,1,predicted_pneumonia_hosp(pneumonia_hosp_regression_coef,current_patient_update[pneumonia_hosp_predictors])$p.pneumonia.hosp)
-        
         # Patient might die because of pneumonia after hospitalisation
         if(current_patient_update$pneu_hosp_yn==1){
           current_pneu_death_prob   <- 1607/19786 ### hard-coded based on dataset
@@ -498,7 +425,6 @@ COPD_model_simulation <- function(patient_size_input,
       ################################################################
       # Update continuous variables depending on the event occurred  #
       ################################################################
-      
       # Update FEV1, CWE, SGACT, symptoms and SGTOT. The order is important here: see ViH for further details (README file)
       # Update FEV1-related variables
       current_patient_update$FEVA          <- max(0,predicted_fev1(lung_function_regression_coef,current_patient_update[fev1_predictors],fev1_treatment_effect_input)$fev_1) 
@@ -508,47 +434,38 @@ COPD_model_simulation <- function(patient_size_input,
       current_patient_update$FEVPPA_SCALED <- (current_patient_update$FEVPPA - attr(scale(baseline_characteristics_run$FEVPPA),"scaled:center"))/attr(scale(baseline_characteristics_run$FEVPPA),"scaled:scale")
       # Force death if FEV1 < 0.2
       if(current_patient_update$FEVA < 0.2){current_patient_update$dead <- 1}
-      
       # Update CWE (the minimum value observed in the dataset was 42. In the code we truncate at 0)
       current_patient_update$CWE_TOT        <- cwe_treatment_effect_input*max(0,predicted_cwe_tot(cwe_tot_regression_coef,current_patient_update[cwe_tot_predictors])$cwe_tot) #max(0,predicted_cwe_tot(cwe_tot_regression_coef$Value,current_patient_update[cwe_tot_predictors])$cwe_tot)
       current_patient_update$CWE_TOT_SCALED <- (current_patient_update$CWE_TOT - attr(scale(baseline_characteristics_run$CWE_TOT),"scaled:center"))/attr(scale(baseline_characteristics_run$CWE_TOT),"scaled:scale")
-      
       # Update SGACT: range of values [0, 100]
       current_patient_update$SGACT        <- min(100,max(0,sgact_treatment_effect_input+predicted_SGACT(SGACT_regression_coef,current_patient_update[SGACT_predictors])$SGACT))
       current_patient_update$SGACT_SCALED <- (current_patient_update$SGACT - attr(scale(baseline_characteristics_run$SGACT),"scaled:center"))/attr(scale(baseline_characteristics_run$SGACT),"scaled:scale")
-      
       # Update breathlesness and coughsputum status (sample from Bernoulli distributions)
       current_patient_update$BREATHLESS_yn  <- rbinom(1,1,breathless_treatment_effect_input*predicted_breathless(breathless_regression_coef,current_patient_update[breathless_predictors])$p.breathless)
       current_patient_update$COUGHSPUTUM_yn <- rbinom(1,1,coughsputum_treatment_effect_input*predicted_coughsputum(coughsputum_regression_coef,current_patient_update[coughsputum_predictors])$p.coughsputum)
-      
       # Update SGTOT: range of values [0, 100]
       current_patient_update$SGTOT        <- min(100,max(0,sgtot_treatment_effect_input+predicted_SGTOT(SGTOT_regression_coef,current_patient_update[SGTOT_predictors])$SGTOT))
       current_patient_update$SGTOT_SCALED <- (current_patient_update$SGTOT - attr(scale(baseline_characteristics_run$SGTOT),"scaled:center"))/attr(scale(baseline_characteristics_run$SGTOT),"scaled:scale")
-      
       # When all characteristics have been updated, we add these to the patient history maxtrix
       simulation_patients_history <- rbind(simulation_patients_history,current_patient_update[history_characteristics])
-      
       # And update the current patient which will "go up" in the while loop again
       current_patient <- current_patient_update
-            
       # Adjust remaining life expectancy according to updated patient characteristics. See MDM paper for details.
       current_mortality_parameters <- predicted_mortality_weibull(mortality_weibull_regression_coef,current_patient[mortality_predictors])
       current_mortality            <- current_mortality_parameters$scale_mortality_weibull*gamma(1+1/current_mortality_parameters$shape_mortality_weibull)/365
-      ### Adjust remaining life expectancy according to improvement or worsened in condition with respect to baseline or previous time period
+      # Adjust remaining life expectancy according to improvement or worsened in condition with respect to baseline or previous time period
       current_remaining_life_exp <- max(0,(current_remaining_life_exp - current_patient$lag_ANLYEAR)*(current_mortality/lag_current_mortality))
-      
       # Update mortality curve and event index
       lag_current_mortality    <- current_mortality 
       current_event            <- current_event + 1
     } #end while loop 
-    # Move to another patient
+    # Move to next patient
     patient_index <- patient_index + 1
   } #end for loop in number of patients
   
   #################################################################################
   ########## MAIN PART II: Update intermediate outcomes after every year ##########
   #################################################################################
-  
   # We were interested in updating the intermediate outcomes after every year because it is commonly done in COPD, e.g. annual decline in FEV1 is one of the most commonly used outcomes.
   # However, this may not be relevant for all models and, therefore, not needed. Removing this part from the model would make it simpler and faster since this part basically runs a loop on the previously simulated outcomes.
   # The simulated patient characteristics of interest are the following:
@@ -577,7 +494,6 @@ COPD_model_simulation <- function(patient_size_input,
     
     # Then, for each year between events, re-calculate all the intemediate outcomes
     for(j in 2:(nrow(current_patient_event_history_update)-1)){
-      
       if(is.na(current_patient_event_history_update[j,]$ANLYEAR)==TRUE){
         current_patient_event_history_update[j,]$FEMALE <- current_patient_event_history_update[j-1,]$FEMALE
         current_patient_event_history_update[j,]$AGE <- current_patient_event_history_update[j-1,]$AGE
@@ -632,7 +548,6 @@ COPD_model_simulation <- function(patient_size_input,
   #################################################################
   ########## MAIN PART III: Calculate aggregated results ##########
   #################################################################
-  
   # We first made additional columns for the "diff" variables, which will calculate the difference between two consecutive outcomes (at time t minus at time t-1)
   patient_event_history_update$diff_ANLYEAR <- "NA"
   patient_event_history_update$diff_FEVA    <- "NA"
@@ -733,8 +648,6 @@ COPD_model_simulation <- function(patient_size_input,
   QALYs_patient_discounted <- aggregate(patient_event_history_update$QALYs_discounted,list(SIMID=patient_event_history_update$SIMID),sum)
   mean_qalys_disc <- round(mean(QALYs_patient_discounted$x),4)
     
-  # Costs are split into categories
-  
   # Treatment costs: the model allows for a  distinction between health care and societal treatment costs, even though in the example below they are assumed to be the same.
   treatment_price_year_hc <- 1.12*1*365.25 # Hard-coded here
   treatment_price_year_societal <- treatment_price_year_hc
@@ -1024,7 +937,6 @@ COPD_model_simulation <- function(patient_size_input,
   mean_total_costs_hc_disc <- round(mean(total_costs_hc_discounted_patient$x),0)
   
   # Finally, return model outcomes of interest
-  
   return(list(mean_annual_fev1_decline = mean_annual_fev1_decline, mean_life_expectancy = mean_life_expectancy, mean_mod_exa_rate = mean_mod_exa_rate,
               mean_sev_exa_rate = mean_sev_exa_rate, mean_CWE_TOT_change = mean_CWE_TOT_change, mean_SGACT_change = mean_SGACT_change,
               mean_cough_rate = mean_cough_rate, mean_time_cough = mean_time_cough, mean_breathless_rate = mean_breathless_rate, mean_time_breath = mean_time_breath, 
