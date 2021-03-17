@@ -2,9 +2,11 @@
 ########## Patient-level discrete event simulation model for COPD ######################
 ########################################################################################
 
-# Original work Copyright (C) 2019/2020 Isaac Corro Ramos
+# Original work Copyright (C) 2019/2020 Isaac Corro Ramos (Institute for Medical Technology Assessment - Erasmus University Rotterdam)
 
-# Before the simulation code starts, make sure that all the packages below are installed in your computer. Then load the followingpackages.
+# Note this code is not optimized for performance. It is not the final version of the model either. It was developed for peer review/educational purposes.
+
+# Before the simulation code starts, make sure that all the packages below are installed in your computer. Then load the following packages.
 library(lattice)
 library(MASS)
 library(survival)
@@ -57,7 +59,6 @@ predicted_exacerbation_severity <- function(regression_coefficents_exacerbation_
 
 ### TIME TO PNEUMONIA
 # Time to pneumonia is a function of the previously estimated regression coefficients and patient characteristics. It is assumed to follow a Weibull distribution.
-
 predicted_pneumonia_weibull <- function(regression_coefficents_pneumonia_weibull_input, patient_characteristics_pneumonia_weibull_input){
   patient_characteristics_pneumonia_weibull_input <- as.numeric(patient_characteristics_pneumonia_weibull_input)
   shape_pneumonia_weibull <- 1/exp(tail(regression_coefficents_pneumonia_weibull_input,n=1))
@@ -145,11 +146,13 @@ predicted_SGTOT <- function(regression_coefficents_SGTOT_input, patient_characte
   return(list(SGTOT=SGTOT))
 }
 
-# The main simulation starts below. The code is used to 1) simulate patients’ clinical history, 2) calculate costs and 
-# 3) calculate QALYs. Patients’ clinical histories are simulated first and, based on these, costs and QALYs are subsequently 
+# The main simulation starts below. The code is used to 1) simulate patient clinical history, 2) calculate costs and 
+# 3) calculate QALYs. Patient clinical history is  simulated first and, based on this, costs and QALYs are subsequently 
 # calculated. Note that this could be implemented as three independent functions but in this tutorial we decided to show everything
 # as one larger function called COPD_model_simulation. If a probabilistic sensitivity analysis is conducted, this function is basically called multiple times.
+
 # The input parameters of the COPD_model_simulation function are the following:
+
 # 1. patient_size_input = number of patients included in the simulation.
 # 2. run_PSA_input = runs the model in probabilistic mode. Otherwise, deterministic.
 # Eight treatment effect parameters:
@@ -163,6 +166,7 @@ predicted_SGTOT <- function(regression_coefficents_SGTOT_input, patient_characte
 # 10. sgtot_treatment_effect_input = variable to indicate increase (or decrease) in quality of life. Default should be 0.  
 # Other parameters 
 # 11. seed_input = A random seed is used to ensure consistency in the model results as explained in the MDM paper (see README file).
+
 COPD_model_simulation <- function(patient_size_input, run_PSA_input, exac_treatment_effect_tte_input, exac_treatment_effect_sevexaprob_input,
                                   fev1_treatment_effect_input, cwe_treatment_effect_input, sgact_treatment_effect_input,coughsputum_treatment_effect_input,
                                   breathless_treatment_effect_input, sgtot_treatment_effect_input,seed_input){
@@ -208,7 +212,7 @@ COPD_model_simulation <- function(patient_size_input, run_PSA_input, exac_treatm
   baseline_characteristics_run <- read.csv(paste0(wd,c("/Model - datasets/baseline_characteristics_predicted_data.csv")),sep=",")
   complete_cases <- baseline_characteristics_run[colnames(baseline_characteristics_run)][complete.cases(baseline_characteristics_run[colnames(baseline_characteristics_run)]),]
   
-  ### Indicate the patient characteristics that we will save during the simulation. 
+  ### Indicate the patient characteristics that will be saved during the simulation. 
   history_characteristics <- c("SIMID","PTID","ANLYEAR","AGE_TIME","FEVA","FEVPPA","SEVEXAC_yn","MODEXAC_yn","CWE_TOT","SGACT","SGTOT","COUGHSPUTUM_yn","BREATHLESS_yn","PNEU_yn","pneu_hosp_yn","dead",
                                "FEMALE","AGE","BMI_CLASS_2","BMI_CLASS_3","SMOKER","SMPKY","OTHER_CVD", "REVERSIBILITY", "DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","EOS_yn","ICS","FEVA_BL","HTSTD",
                                "lag_SGACT","lag_CWE_TOT","lag_BREATHLESS_yn","lag_COUGHSPUTUM_yn","lag_SGTOT", "SMPKY_SCALED","REVERSIBILITY_SCALED","ANLYEAR_SCALED","AGE_SCALED","FEVPPA_SCALED","SGACT_SCALED","CWE_TOT_SCALED")
@@ -333,17 +337,17 @@ COPD_model_simulation <- function(patient_size_input, run_PSA_input, exac_treatm
       current_patient_update <- current_patient
       
       # Update first the time lagged characteristics (these are needed for prediction of future events/intermediate characteristics)
-      current_patient_update$lag_FEVPPA        <- current_patient$FEVPPA
-      current_patient_update$lag_FEVPPA_SCALED <- (current_patient$FEVPPA - attr(scale(baseline_characteristics_run$FEVPPA),"scaled:center"))/attr(scale(baseline_characteristics_run$FEVPPA),"scaled:scale")
-      current_patient_update$lag_SGACT         <- current_patient$SGACT
-      current_patient_update$lag_SGACT_SCALED  <- (current_patient$SGACT - attr(scale(baseline_characteristics_run$SGACT),"scaled:center"))/attr(scale(baseline_characteristics_run$SGACT),"scaled:scale")
-      current_patient_update$lag_CWE_TOT       <- current_patient$CWE_TOT
+      current_patient_update$lag_FEVPPA         <- current_patient$FEVPPA
+      current_patient_update$lag_FEVPPA_SCALED  <- (current_patient$FEVPPA - attr(scale(baseline_characteristics_run$FEVPPA),"scaled:center"))/attr(scale(baseline_characteristics_run$FEVPPA),"scaled:scale")
+      current_patient_update$lag_SGACT          <- current_patient$SGACT
+      current_patient_update$lag_SGACT_SCALED   <- (current_patient$SGACT - attr(scale(baseline_characteristics_run$SGACT),"scaled:center"))/attr(scale(baseline_characteristics_run$SGACT),"scaled:scale")
+      current_patient_update$lag_CWE_TOT        <- current_patient$CWE_TOT
       current_patient_update$lag_BREATHLESS_yn  <- current_patient$BREATHLESS_yn
       current_patient_update$lag_COUGHSPUTUM_yn <- current_patient$COUGHSPUTUM_yn
-      current_patient_update$lag_SGTOT         <- current_patient$SGTOT
-      current_patient_update$lag_SGTOT_SCALED  <- (current_patient$SGTOT - attr(scale(baseline_characteristics_run$SGTOT),"scaled:center"))/attr(scale(baseline_characteristics_run$SGTOT),"scaled:scale")
-      current_patient_update$PREV_SEVEXAC_yn <- current_patient$SEVEXAC_yn
-      current_patient_update$PREV_TOTEXAC_yn <- ifelse(current_patient$SEVEXAC_yn==1 | current_patient$MODEXAC_yn==1,1,0)
+      current_patient_update$lag_SGTOT          <- current_patient$SGTOT
+      current_patient_update$lag_SGTOT_SCALED   <- (current_patient$SGTOT - attr(scale(baseline_characteristics_run$SGTOT),"scaled:center"))/attr(scale(baseline_characteristics_run$SGTOT),"scaled:scale")
+      current_patient_update$PREV_SEVEXAC_yn    <- current_patient$SEVEXAC_yn
+      current_patient_update$PREV_TOTEXAC_yn    <- ifelse(current_patient$SEVEXAC_yn==1 | current_patient$MODEXAC_yn==1,1,0)
             
       # Next update depending on the event occurred: if an exacerbation happened, then update at exacerbation time the following characteristics
       if(min(current_remaining_life_exp,current_exacerbation_time,current_pneumonia_time)==current_exacerbation_time){
@@ -795,7 +799,7 @@ COPD_model_simulation <- function(patient_size_input, run_PSA_input, exac_treatm
   # Predictors GP visits
   gpvisits_stable_predictors <- c("FEMALE","BMI_CLASS_2","BMI_CLASS_3","SMOKER","SMPKY","OTHER_CVD","DIABETES","DEPRESSION","HEART_FAILURE","ASTHMA","EMPHDIA","ICS","EOS_yn")
   gpvisits_predictors <- c(gpvisits_stable_predictors,"AGE_TIME","FEVPPA","SGACT","COUGHSPUTUM_yn","BREATHLESS_yn","SGTOT","MODEXAC_yn","SEVEXAC_yn")
-  # Merge the two datsets and order the dataset by "SIMID". This is very important because after merging the order is lost.
+  # Merge the two datasets and order the dataset by "SIMID". This is very important because after merging the order is lost.
   patient_event_history_update_maintenance_costs <- merge(patient_event_history_update[,1:19],baseline_characteristics[c("PTID",gpvisits_stable_predictors)],by.x = "PTID",by.y = "PTID")
   patient_event_history_update_maintenance_costs <- patient_event_history_update_maintenance_costs[order(patient_event_history_update_maintenance_costs$SIMID),]
   # GP visits costs are calculated in the following function
